@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專案報備 - 第二階段</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="breadcrumb">
+                <a href="index.html">首頁</a> > <span>專案報備 - 第二階段</span>
+            </div>
+            <h1>專案報備 - 第二階段</h1>
+            <p>得標後請填寫交貨相關資訊</p>
+        </header>
+
+        <main>
+            <div id="projectInfo" class="info-panel">
+                <h3>專案基本資訊</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>專案名稱：</strong>
+                        <span id="displayProjectName">載入中...</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>聯絡人：</strong>
+                        <span id="displayContactPerson">載入中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <form id="projectStep2Form" class="form-container">
+                <input type="hidden" id="projectId" name="projectId">
+                
+                <div class="form-group">
+                    <label for="expectedDeliveryPeriod">預計交貨期 *</label>
+                    <input type="text" id="expectedDeliveryPeriod" name="expectedDeliveryPeriod" required 
+                           placeholder="例：30個工作天、2個月等">
+                </div>
+
+                <div class="form-group">
+                    <label for="expectedDeliveryDate">預計交貨日 *</label>
+                    <input type="date" id="expectedDeliveryDate" name="expectedDeliveryDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="expectedContractPeriod">預計履約期 *</label>
+                    <input type="text" id="expectedContractPeriod" name="expectedContractPeriod" required 
+                           placeholder="例：1年、18個月等">
+                </div>
+
+                <div class="form-group">
+                    <label for="contractStartDate">履約開始日</label>
+                    <input type="date" id="contractStartDate" name="contractStartDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="contractEndDate">履約結束日</label>
+                    <input type="date" id="contractEndDate" name="contractEndDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="deliveryAddress">交貨地址</label>
+                    <textarea id="deliveryAddress" name="deliveryAddress" rows="3" 
+                              placeholder="請輸入詳細交貨地址"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialRequirements">特殊需求</label>
+                    <textarea id="specialRequirements" name="specialRequirements" rows="4" 
+                              placeholder="請輸入任何特殊需求或注意事項"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="location.href='index.html'">取消</button>
+                    <button type="submit" class="btn btn-primary">完成報備</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <div class="loading-spinner"></div>
+            <p>正在更新資料...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

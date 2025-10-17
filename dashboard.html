@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數據查看</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="breadcrumb">
+                <a href="index.html">首頁</a> > <span>數據查看</span>
+            </div>
+            <h1>數據查看</h1>
+            <p>所有報備專案和現貨的即時數據</p>
+        </header>
+
+        <main>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <select id="typeFilter">
+                        <option value="all">全部類型</option>
+                        <option value="project">專案報備</option>
+                        <option value="stock">現貨報備</option>
+                    </select>
+                    <select id="statusFilter">
+                        <option value="all">全部狀態</option>
+                        <option value="step1">第一階段</option>
+                        <option value="step2">第二階段</option>
+                        <option value="completed">已完成</option>
+                    </select>
+                    <button id="refreshData" class="btn btn-primary">重新整理</button>
+                </div>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalProjects">-</div>
+                    <div class="stat-label">專案總數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalStock">-</div>
+                    <div class="stat-label">現貨總數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingStep2">-</div>
+                    <div class="stat-label">待填第二階段</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedToday">-</div>
+                    <div class="stat-label">今日完成</div>
+                </div>
+            </div>
+
+            <div class="data-section">
+                <h3>專案報備清單</h3>
+                <div class="table-container">
+                    <table id="projectTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>專案名稱</th>
+                                <th>聯絡人</th>
+                                <th>設備數量</th>
+                                <th>狀態</th>
+                                <th>建立時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="no-data">
+                                <td colspan="6">載入中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-section">
+                <h3>現貨報備清單</h3>
+                <div class="table-container">
+                    <table id="stockTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>項目名稱</th>
+                                <th>聯絡人</th>
+                                <th>設備數量</th>
+                                <th>預計出貨日</th>
+                                <th>急件程度</th>
+                                <th>建立時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="no-data">
+                                <td colspan="7">載入中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 詳細資訊Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="modalTitle">詳細資訊</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent">
+                    <!-- 內容將由JavaScript動態填入 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="editProject" class="btn btn-secondary" style="display: none;">編輯專案</button>
+                <button class="btn btn-primary modal-close">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

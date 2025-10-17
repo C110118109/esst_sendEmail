@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專案報備 - 第一階段</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="breadcrumb">
+                <a href="index.html">首頁</a> > <span>專案報備 - 第一階段</span>
+            </div>
+            <h1>專案報備 - 第一階段</h1>
+            <p>請填寫專案基本資訊</p>
+        </header>
+
+        <main>
+            <form id="projectStep1Form" class="form-container">
+                <div class="form-group">
+                    <label for="projectName">專案名稱 *</label>
+                    <input type="text" id="projectName" name="projectName" required 
+                           placeholder="請輸入專案名稱">
+                </div>
+
+                <div class="form-group">
+                    <label for="contactPerson">聯絡人 *</label>
+                    <input type="text" id="contactPerson" name="contactPerson" required 
+                           placeholder="請輸入聯絡人姓名">
+                </div>
+
+                <div class="form-group">
+                    <label for="contactEmail">聯絡人信箱</label>
+                    <input type="email" id="contactEmail" name="contactEmail" 
+                           placeholder="請輸入聯絡人信箱">
+                </div>
+
+                <div class="form-group">
+                    <label for="contactPhone">聯絡人電話</label>
+                    <input type="tel" id="contactPhone" name="contactPhone" 
+                           placeholder="請輸入聯絡人電話">
+                </div>
+
+                <div class="form-group">
+                    <label for="esstPerson">雙欣負責人</label>
+                    <input type="text" id="esstPerson" name="esstPerson" 
+                           placeholder="請輸入雙欣負責人姓名">
+                </div>
+
+                <div class="form-section">
+                    <h3>設備清單</h3>
+                    <div id="equipmentList">
+                        <div class="equipment-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>料號 *</label>
+                                    <input type="text" name="partNumber[]" required 
+                                           placeholder="請輸入料號">
+                                </div>
+                                <div class="form-group">
+                                    <label>數量 *</label>
+                                    <input type="number" name="quantity[]" required min="1" 
+                                           placeholder="請輸入數量">
+                                </div>
+                                <div class="form-group">
+                                    <label>設備說明</label>
+                                    <input type="text" name="description[]" 
+                                           placeholder="請輸入設備說明">
+                                </div>
+                                <button type="button" class="btn btn-danger remove-equipment" style="display: none;">移除</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="addEquipment" class="btn btn-secondary">+ 新增設備</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="remarks">備註</label>
+                    <textarea id="remarks" name="remarks" rows="4" 
+                              placeholder="請輸入其他相關資訊"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="location.href='index.html'">取消</button>
+                    <button type="submit" class="btn btn-primary">提交第一階段</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <div class="loading-spinner"></div>
+            <p>正在提交資料...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專案報備系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>專案報備系統</h1>
+            <p>請選擇您要進行的作業類型</p>
+        </header>
+
+        <main>
+            <div class="card-container">
+                <div class="card" onclick="location.href='project-step1.html'">
+                    <div class="card-icon">📋</div>
+                    <h2>專案報備</h2>
+                    <p>需要得標後填寫交貨資訊的專案</p>
+                    <div class="card-steps">
+                        <span class="step">第一階段：基本資訊</span>
+                        <span class="step">第二階段：交貨資訊</span>
+                    </div>
+                </div>
+
+                <div class="card" onclick="location.href='stock-report.html'">
+                    <div class="card-icon">📦</div>
+                    <h2>現貨報備</h2>
+                    <p>直接出貨的現貨項目</p>
+                    <div class="card-steps">
+                        <span class="step">一次完成所有資訊</span>
+                    </div>
+                </div>
+
+                <div class="card" onclick="location.href='dashboard.html'">
+                    <div class="card-icon">📊</div>
+                    <h2>數據查看</h2>
+                    <p>查看所有報備的專案和現貨資料</p>
+                    <div class="card-steps">
+                        <span class="step">即時數據顯示</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- <footer>
+            <p>&copy; 2025 專案報備系統</p>
+        </footer> -->
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
