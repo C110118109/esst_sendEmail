@@ -1,6 +1,6 @@
 // script.js
 
-// API 基礎設定 - 修正為正確的路徑
+// API 基礎設定
 const API_BASE_URL = 'http://localhost:8080/authority/v1.0';
 
 // 工具函數
@@ -63,21 +63,38 @@ const api = {
                 ...options
             });
 
-            const data = await response.json();
-            console.log('API Response:', data);
-
-            // 檢查後端返回的狀態碼
-            if (data.code && data.code !== 0) {
-                throw new Error(data.message || '請求失敗');
+            console.log('Response status:', response.status);
+            
+            // 嘗試解析 JSON
+            let data;
+            try {
+                data = await response.json();
+                console.log('Response data:', data);
+            } catch (e) {
+                console.error('❌ Failed to parse JSON:', e);
+                throw new Error('伺服器回應格式錯誤');
             }
 
+            // 檢查 HTTP 狀態碼
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // 檢查後端返回的狀態碼
+            // 後端成功時回傳 code: 200,失敗時回傳其他 code
+            if (data.code && data.code >= 400) {
+                throw new Error(data.message || '請求失敗');
+            }
+
             return data;
         } catch (error) {
-            console.error('API request failed:', error);
+            console.error('❌ API request failed:', error);
+            
+            // 提供更友善的錯誤訊息
+            if (error.message === 'Failed to fetch') {
+                throw new Error('無法連接到伺服器,請確認後端服務是否運行在 http://localhost:8080');
+            }
+            
             throw error;
         }
     },
@@ -97,22 +114,27 @@ const api = {
         });
     },
 
-    // 批次建立設備
     createEquipmentBatch: async (projectId, equipments) => {
+        console.log('📤 Creating equipment batch for project:', projectId);
+        console.log('📤 Equipment data:', JSON.stringify(equipments, null, 2));
+        
+        const requestBody = {
+            p_id: projectId,
+            equipments: equipments.map(eq => ({
+                part_number: eq.partNumber,
+                quantity: parseInt(eq.quantity),
+                description: eq.description || ''
+            }))
+        };
+        
+        console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+        
         return await api.request('/equipments/batch', {
             method: 'POST',
-            body: JSON.stringify({
-                p_id: projectId,
-                equipments: equipments.map(eq => ({
-                    part_number: eq.partNumber,
-                    quantity: parseInt(eq.quantity),
-                    description: eq.description || ''
-                }))
-            })
+            body: JSON.stringify(requestBody)
         });
     },
 
-    // 獲取專案列表
     getProjects: async (page = 1, limit = 20) => {
         const params = new URLSearchParams({ page, limit });
         return await api.request(`/projects?${params}`, {
@@ -120,21 +142,18 @@ const api = {
         });
     },
 
-    // 獲取單一專案
     getProject: async (id) => {
         return await api.request(`/projects/${id}`, {
             method: 'GET'
         });
     },
 
-    // 根據專案 ID 獲取設備列表
     getEquipmentsByProject: async (projectId) => {
         return await api.request(`/equipments/project/${projectId}`, {
             method: 'GET'
         });
     },
 
-    // 更新專案
     updateProject: async (id, data) => {
         return await api.request(`/projects/${id}`, {
             method: 'PATCH',
@@ -149,7 +168,6 @@ const api = {
         });
     },
 
-    // 刪除專案
     deleteProject: async (id) => {
         return await api.request(`/projects/${id}`, {
             method: 'DELETE'
@@ -171,7 +189,6 @@ const projectStep1Handler = {
             addBtn.addEventListener('click', projectStep1Handler.addEquipment);
         }
 
-        // 初始化移除按鈕事件
         projectStep1Handler.updateRemoveButtons();
     },
 
@@ -195,11 +212,12 @@ const projectStep1Handler = {
             // 收集設備資料
             const equipments = projectStep1Handler.collectEquipments(formData);
             
-            console.log('提交資料:', { projectData, equipments });
+            console.log('📋 提交資料:', { projectData, equipments });
             
             // 步驟 1: 建立專案
+            console.log('⏳ 正在建立專案...');
             const projectResult = await api.createProject(projectData);
-            console.log('專案建立結果:', projectResult);
+            console.log('✅ 專案建立成功:', projectResult);
             
             // 從回應中取得專案 ID
             const projectId = projectResult.body;
@@ -208,11 +226,15 @@ const projectStep1Handler = {
                 throw new Error('無法取得專案 ID');
             }
             
+            console.log('📝 專案 ID:', projectId);
+            
             // 步驟 2: 如果有設備,批次建立設備
             if (equipments.length > 0) {
-                console.log('開始建立設備,專案 ID:', projectId);
+                console.log('⏳ 正在建立設備...');
                 const equipmentResult = await api.createEquipmentBatch(projectId, equipments);
-                console.log('設備建立結果:', equipmentResult);
+                console.log('✅ 設備建立成功:', equipmentResult);
+            } else {
+                console.log('ℹ️ 沒有設備需要建立');
             }
             
             utils.hideLoading();
@@ -224,7 +246,7 @@ const projectStep1Handler = {
             
         } catch (error) {
             utils.hideLoading();
-            console.error('提交錯誤:', error);
+            console.error('❌ 提交錯誤:', error);
             utils.showError('提交失敗: ' + error.message);
         }
     },
@@ -234,6 +256,8 @@ const projectStep1Handler = {
         const partNumbers = formData.getAll('partNumber[]');
         const quantities = formData.getAll('quantity[]');
         const descriptions = formData.getAll('description[]');
+
+        console.log('📦 收集設備資料:', { partNumbers, quantities, descriptions });
 
         for (let i = 0; i < partNumbers.length; i++) {
             if (partNumbers[i] && quantities[i]) {
@@ -245,6 +269,7 @@ const projectStep1Handler = {
             }
         }
 
+        console.log('📦 收集到的設備:', equipments);
         return equipments;
     },
 
@@ -261,7 +286,7 @@ const projectStep1Handler = {
                 </div>
                 <div class="form-group">
                     <label>數量 *</label>
-                    <input type="number" name="quantity[]" required min="1" step="0.01" placeholder="請輸入數量">
+                    <input type="number" name="quantity[]" required min="1" step="1" placeholder="請輸入數量">
                 </div>
                 <div class="form-group">
                     <label>設備說明</label>
@@ -295,77 +320,6 @@ const projectStep1Handler = {
                 }
             };
         });
-    }
-};
-
-// 專案第二階段表單處理
-const projectStep2Handler = {
-    init: () => {
-        const form = document.getElementById('projectStep2Form');
-        
-        if (form) {
-            form.addEventListener('submit', projectStep2Handler.handleSubmit);
-        }
-
-        // 載入專案資訊
-        projectStep2Handler.loadProjectInfo();
-    },
-
-    loadProjectInfo: async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const projectId = urlParams.get('id');
-        
-        if (projectId) {
-            try {
-                const result = await api.getProject(projectId);
-                const project = result.body;
-                projectStep2Handler.displayProjectInfo(project);
-                document.getElementById('projectId').value = projectId;
-            } catch (error) {
-                utils.showError('載入專案資訊失敗: ' + error.message);
-            }
-        }
-    },
-
-    displayProjectInfo: (project) => {
-        document.getElementById('displayProjectName').textContent = project.p_name;
-        document.getElementById('displayContactPerson').textContent = project.contact_name;
-    },
-
-    handleSubmit: async (e) => {
-        e.preventDefault();
-        utils.showLoading();
-
-        try {
-            const formData = new FormData(e.target);
-            const projectId = formData.get('projectId');
-            const data = projectStep2Handler.collectFormData(formData);
-            
-            const result = await api.updateProject(projectId, data);
-            
-            utils.hideLoading();
-            utils.showSuccess('專案報備已完成!');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
-            
-        } catch (error) {
-            utils.hideLoading();
-            utils.showError('提交失敗: ' + error.message);
-        }
-    },
-
-    collectFormData: (formData) => {
-        return {
-            expectedDeliveryPeriod: formData.get('expectedDeliveryPeriod'),
-            expectedDeliveryDate: formData.get('expectedDeliveryDate'),
-            expectedContractPeriod: formData.get('expectedContractPeriod'),
-            contractStartDate: formData.get('contractStartDate') || '',
-            contractEndDate: formData.get('contractEndDate') || '',
-            deliveryAddress: formData.get('deliveryAddress') || '',
-            specialRequirements: formData.get('specialRequirements') || ''
-        };
     }
 };
 
@@ -650,14 +604,11 @@ const dashboardHandler = {
 document.addEventListener('DOMContentLoaded', () => {
     const currentPage = window.location.pathname.split('/').pop();
     
-    console.log('當前頁面:', currentPage);
+    console.log('🚀 當前頁面:', currentPage);
     
     switch (currentPage) {
         case 'project-step1.html':
             projectStep1Handler.init();
-            break;
-        case 'project-step2.html':
-            projectStep2Handler.init();
             break;
         case 'dashboard.html':
             dashboardHandler.init();
@@ -682,6 +633,5 @@ window.ProjectReportSystem = {
     utils,
     api,
     projectStep1Handler,
-    projectStep2Handler,
     dashboardHandler
 };
