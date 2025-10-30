@@ -5,43 +5,36 @@ const API_BASE_URL = 'http://localhost:8080/authority/v1.0';
 
 // 工具函數
 const utils = {
-    // 顯示載入動畫
     showLoading: () => {
         const modal = document.getElementById('loadingModal');
         if (modal) modal.style.display = 'block';
     },
 
-    // 隱藏載入動畫
     hideLoading: () => {
         const modal = document.getElementById('loadingModal');
         if (modal) modal.style.display = 'none';
     },
 
-    // 顯示成功訊息
     showSuccess: (message) => {
         alert(`✅ ${message}`);
     },
 
-    // 顯示錯誤訊息
     showError: (message) => {
         alert(`❌ ${message}`);
     },
 
-    // 格式化日期
     formatDate: (dateString) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('zh-TW');
     },
 
-    // 格式化日期時間
     formatDateTime: (dateString) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleString('zh-TW');
     },
 
-    // 生成唯一ID
     generateId: () => {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
@@ -49,11 +42,10 @@ const utils = {
 
 // API 請求函數
 const api = {
-    // 發送請求
     request: async (endpoint, options = {}) => {
         try {
             const url = `${API_BASE_URL}${endpoint}`;
-            console.log('API Request:', url, options);
+            console.log('📤 API Request:', url, options);
             
             const response = await fetch(url, {
                 headers: {
@@ -63,13 +55,13 @@ const api = {
                 ...options
             });
 
-            console.log('Response status:', response.status);
+            console.log('📥 Response status:', response.status);
             
             // 嘗試解析 JSON
             let data;
             try {
                 data = await response.json();
-                console.log('Response data:', data);
+                console.log('📥 Response data:', data);
             } catch (e) {
                 console.error('❌ Failed to parse JSON:', e);
                 throw new Error('伺服器回應格式錯誤');
@@ -99,7 +91,6 @@ const api = {
         }
     },
 
-    // 建立專案
     createProject: async (data) => {
         return await api.request('/projects', {
             method: 'POST',
@@ -155,16 +146,30 @@ const api = {
     },
 
     updateProject: async (id, data) => {
+        const requestBody = {};
+        
+        // 只包含有值的欄位
+        if (data.projectName) requestBody.p_name = data.projectName;
+        if (data.contactPerson) requestBody.contact_name = data.contactPerson;
+        if (data.contactPhone) requestBody.contact_phone = data.contactPhone;
+        if (data.contactEmail) requestBody.contact_email = data.contactEmail;
+        if (data.esstPerson) requestBody.owner = data.esstPerson;
+        if (data.remarks) requestBody.remark = data.remarks;
+        
+        // 第二階段欄位
+        if (data.expectedDeliveryPeriod) requestBody.expected_delivery_period = data.expectedDeliveryPeriod;
+        if (data.expectedDeliveryDate) requestBody.expected_delivery_date = data.expectedDeliveryDate;
+        if (data.expectedContractPeriod) requestBody.expected_contract_period = data.expectedContractPeriod;
+        if (data.contractStartDate) requestBody.contract_start_date = data.contractStartDate;
+        if (data.contractEndDate) requestBody.contract_end_date = data.contractEndDate;
+        if (data.deliveryAddress) requestBody.delivery_address = data.deliveryAddress;
+        if (data.specialRequirements) requestBody.special_requirements = data.specialRequirements;
+        
+        console.log('📤 Update request body:', requestBody);
+        
         return await api.request(`/projects/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({
-                p_name: data.projectName,
-                contact_name: data.contactPerson,
-                contact_phone: data.contactPhone,
-                contact_email: data.contactEmail,
-                owner: data.esstPerson,
-                remark: data.remarks
-            })
+            body: JSON.stringify(requestBody)
         });
     },
 
@@ -226,27 +231,35 @@ const projectStep1Handler = {
                 throw new Error('無法取得專案 ID');
             }
             
-            console.log('📝 專案 ID:', projectId);
-            
-            // 步驟 2: 如果有設備,批次建立設備
+            // 步驟 2: 建立設備（如果有設備）
             if (equipments.length > 0) {
-                console.log('⏳ 正在建立設備...');
-                const equipmentResult = await api.createEquipmentBatch(projectId, equipments);
-                console.log('✅ 設備建立成功:', equipmentResult);
-            } else {
-                console.log('ℹ️ 沒有設備需要建立');
+                console.log('⏳ 正在建立設備清單...');
+                try {
+                    const equipmentResult = await api.createEquipmentBatch(projectId, equipments);
+                    console.log('✅ 設備建立成功:', equipmentResult);
+                } catch (equipError) {
+                    console.warn('⚠️ 設備建立失敗，但專案已建立:', equipError);
+                    // 專案已建立成功，設備失敗只顯示警告
+                    utils.hideLoading();
+                    utils.showSuccess(`專案建立成功！\n專案 ID: ${projectId}\n\n注意：設備清單建立失敗，請稍後手動新增。`);
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    return;
+                }
             }
             
             utils.hideLoading();
-            utils.showSuccess('專案與設備已成功建立!');
+            utils.showSuccess(`第一階段報備成功！\n專案 ID: ${projectId}\n\n得標後請記得填寫第二階段資訊。`);
             
+            // 跳轉回首頁
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 2000);
             
         } catch (error) {
             utils.hideLoading();
-            console.error('❌ 提交錯誤:', error);
+            console.error('❌ 提交失敗:', error);
             utils.showError('提交失敗: ' + error.message);
         }
     },
@@ -256,28 +269,24 @@ const projectStep1Handler = {
         const partNumbers = formData.getAll('partNumber[]');
         const quantities = formData.getAll('quantity[]');
         const descriptions = formData.getAll('description[]');
-
-        console.log('📦 收集設備資料:', { partNumbers, quantities, descriptions });
-
+        
         for (let i = 0; i < partNumbers.length; i++) {
             if (partNumbers[i] && quantities[i]) {
                 equipments.push({
                     partNumber: partNumbers[i],
-                    quantity: parseInt(quantities[i]),
+                    quantity: quantities[i],
                     description: descriptions[i] || ''
                 });
             }
         }
-
-        console.log('📦 收集到的設備:', equipments);
+        
         return equipments;
     },
 
     addEquipment: () => {
-        const container = document.getElementById('equipmentList');
+        const list = document.getElementById('equipmentList');
         const newItem = document.createElement('div');
         newItem.className = 'equipment-item';
-        
         newItem.innerHTML = `
             <div class="form-row">
                 <div class="form-group">
@@ -286,7 +295,7 @@ const projectStep1Handler = {
                 </div>
                 <div class="form-group">
                     <label>數量 *</label>
-                    <input type="number" name="quantity[]" required min="1" step="1" placeholder="請輸入數量">
+                    <input type="number" name="quantity[]" required min="1" placeholder="請輸入數量">
                 </div>
                 <div class="form-group">
                     <label>設備說明</label>
@@ -296,30 +305,162 @@ const projectStep1Handler = {
             </div>
         `;
         
-        container.appendChild(newItem);
+        list.appendChild(newItem);
+        
+        newItem.querySelector('.remove-equipment').addEventListener('click', function() {
+            newItem.remove();
+            projectStep1Handler.updateRemoveButtons();
+        });
+        
         projectStep1Handler.updateRemoveButtons();
     },
 
     updateRemoveButtons: () => {
         const items = document.querySelectorAll('.equipment-item');
-        const removeButtons = document.querySelectorAll('.remove-equipment');
+        items.forEach((item, index) => {
+            const removeBtn = item.querySelector('.remove-equipment');
+            if (removeBtn) {
+                removeBtn.style.display = items.length > 1 ? 'block' : 'none';
+            }
+        });
+    }
+};
+
+// 專案第二階段表單處理
+const projectStep2Handler = {
+    init: () => {
+        const form = document.getElementById('projectStep2Form');
         
-        // 顯示/隱藏移除按鈕
-        removeButtons.forEach((btn, index) => {
-            if (items.length > 1) {
-                btn.style.display = 'block';
+        if (form) {
+            form.addEventListener('submit', projectStep2Handler.handleSubmit);
+        }
+
+        // 從 URL 取得專案 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+        
+        if (projectId) {
+            projectStep2Handler.loadProjectInfo(projectId);
+        } else {
+            utils.showError('未提供專案 ID，請從正確的連結進入');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+    },
+
+    loadProjectInfo: async (projectId) => {
+        try {
+            utils.showLoading();
+            
+            console.log('⏳ 正在載入專案資訊，專案 ID:', projectId);
+            const result = await api.getProject(projectId);
+            console.log('✅ 專案資訊載入成功:', result);
+            
+            if (result.code === 200 && result.body) {
+                const project = result.body;
+                
+                // 顯示專案基本資訊
+                const displayProjectName = document.getElementById('displayProjectName');
+                const displayContactPerson = document.getElementById('displayContactPerson');
+                const projectIdInput = document.getElementById('projectId');
+                
+                if (displayProjectName) {
+                    displayProjectName.textContent = project.p_name || '-';
+                }
+                if (displayContactPerson) {
+                    displayContactPerson.textContent = project.contact_name || '-';
+                }
+                if (projectIdInput) {
+                    projectIdInput.value = projectId;
+                }
+                
+                // 如果已有第二階段資料，填入表單
+                if (project.expected_delivery_period) {
+                    document.getElementById('expectedDeliveryPeriod').value = project.expected_delivery_period;
+                }
+                if (project.expected_delivery_date) {
+                    // 將 ISO 日期轉換為 input[type="date"] 格式 (YYYY-MM-DD)
+                    const date = new Date(project.expected_delivery_date);
+                    document.getElementById('expectedDeliveryDate').value = date.toISOString().split('T')[0];
+                }
+                if (project.expected_contract_period) {
+                    document.getElementById('expectedContractPeriod').value = project.expected_contract_period;
+                }
+                if (project.contract_start_date) {
+                    const date = new Date(project.contract_start_date);
+                    document.getElementById('contractStartDate').value = date.toISOString().split('T')[0];
+                }
+                if (project.contract_end_date) {
+                    const date = new Date(project.contract_end_date);
+                    document.getElementById('contractEndDate').value = date.toISOString().split('T')[0];
+                }
+                if (project.delivery_address) {
+                    document.getElementById('deliveryAddress').value = project.delivery_address;
+                }
+                if (project.special_requirements) {
+                    document.getElementById('specialRequirements').value = project.special_requirements;
+                }
+                
             } else {
-                btn.style.display = 'none';
+                throw new Error('無法取得專案資訊');
             }
             
-            // 重新綁定事件
-            btn.onclick = () => {
-                if (items.length > 1) {
-                    btn.closest('.equipment-item').remove();
-                    projectStep1Handler.updateRemoveButtons();
-                }
+            utils.hideLoading();
+            
+        } catch (error) {
+            utils.hideLoading();
+            console.error('❌ 載入專案資訊失敗:', error);
+            utils.showError('載入專案資訊失敗: ' + error.message);
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+    },
+
+    handleSubmit: async (e) => {
+        e.preventDefault();
+        utils.showLoading();
+
+        try {
+            const formData = new FormData(e.target);
+            const projectId = formData.get('projectId');
+            
+            if (!projectId) {
+                throw new Error('專案 ID 不存在');
+            }
+            
+            // 收集第二階段資料
+            const updateData = {
+                expectedDeliveryPeriod: formData.get('expectedDeliveryPeriod'),
+                expectedDeliveryDate: formData.get('expectedDeliveryDate'),
+                expectedContractPeriod: formData.get('expectedContractPeriod'),
+                contractStartDate: formData.get('contractStartDate'),
+                contractEndDate: formData.get('contractEndDate'),
+                deliveryAddress: formData.get('deliveryAddress'),
+                specialRequirements: formData.get('specialRequirements')
             };
-        });
+            
+            console.log('📋 提交第二階段資料:', updateData);
+            
+            // 更新專案
+            const result = await api.updateProject(projectId, updateData);
+            console.log('✅ 更新成功:', result);
+            
+            utils.hideLoading();
+            utils.showSuccess('第二階段報備完成！');
+            
+            // 跳轉回首頁
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1500);
+            
+        } catch (error) {
+            utils.hideLoading();
+            console.error('❌ 提交失敗:', error);
+            utils.showError('提交失敗: ' + error.message);
+        }
     }
 };
 
@@ -330,76 +471,87 @@ const dashboardHandler = {
         stocks: []
     },
 
-    init: () => {
-        const refreshBtn = document.getElementById('refreshData');
+    init: async () => {
+        await dashboardHandler.loadData();
+        dashboardHandler.updateStats();
+        dashboardHandler.updateTables();
+        dashboardHandler.initModal();
+        
         const typeFilter = document.getElementById('typeFilter');
         const statusFilter = document.getElementById('statusFilter');
-        
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', dashboardHandler.loadData);
-        }
         
         if (typeFilter) {
             typeFilter.addEventListener('change', dashboardHandler.filterData);
         }
-        
         if (statusFilter) {
             statusFilter.addEventListener('change', dashboardHandler.filterData);
         }
-
-        // 初始載入資料
-        dashboardHandler.loadData();
-        
-        // Modal 事件處理
-        dashboardHandler.initModal();
     },
 
     loadData: async () => {
         try {
             utils.showLoading();
-            const result = await api.getProjects(1, 20);
             
-            console.log('載入專案列表:', result);
+            const projectsResult = await api.getProjects(1, 100);
+            console.log('📥 Projects loaded:', projectsResult);
             
-            // 根據後端回傳的資料結構進行轉換
-            if (result.body && result.body.projects) {
-                dashboardHandler.data.projects = result.body.projects.map(p => ({
+            if (projectsResult.code === 200 && projectsResult.body) {
+                // 載入專案基本資料
+                const projectsData = projectsResult.body.projects.map(p => ({
                     id: p.p_id,
                     projectName: p.p_name,
                     contactPerson: p.contact_name,
-                    contactEmail: p.contact_email || '-',
-                    contactPhone: p.contact_phone || '-',
-                    owner: p.owner || '-',
-                    remark: p.remark || '-',
-                    createdTime: p.created_time
+                    contactEmail: p.contact_email,
+                    contactPhone: p.contact_phone,
+                    owner: p.owner,
+                    remark: p.remark,
+                    status: p.status || 'step1',
+                    createdTime: p.created_time,
+                    updatedTime: p.updated_time,
+                    expectedDeliveryDate: p.expected_delivery_date,
+                    equipmentCount: 0 // 初始為 0
                 }));
-            } else {
-                dashboardHandler.data.projects = [];
-            }
 
-            dashboardHandler.updateStats();
-            dashboardHandler.updateTables();
+                // 批次載入每個專案的設備數量
+                const equipmentPromises = projectsData.map(async (project) => {
+                    try {
+                        const equipmentResult = await api.getEquipmentsByProject(project.id);
+                        if (equipmentResult.code === 200 && equipmentResult.body) {
+                            project.equipmentCount = equipmentResult.body.length || 0;
+                        }
+                    } catch (error) {
+                        console.warn(`載入專案 ${project.id} 的設備失敗:`, error);
+                        project.equipmentCount = 0;
+                    }
+                });
+
+                // 等待所有設備資料載入完成
+                await Promise.all(equipmentPromises);
+                
+                dashboardHandler.data.projects = projectsData;
+            }
+            
             utils.hideLoading();
         } catch (error) {
             utils.hideLoading();
-            console.error('載入資料錯誤:', error);
+            console.error('❌ Load data failed:', error);
             utils.showError('載入資料失敗: ' + error.message);
         }
     },
 
     updateStats: () => {
-        const { projects, stocks } = dashboardHandler.data;
-        
         const totalProjectsEl = document.getElementById('totalProjects');
-        const totalStockEl = document.getElementById('totalStock');
-        const pendingStep2El = document.getElementById('pendingStep2');
+        const totalStocksEl = document.getElementById('totalStocks');
+        const pendingDeliveryEl = document.getElementById('pendingDelivery');
         const completedTodayEl = document.getElementById('completedToday');
         
-        if (totalProjectsEl) totalProjectsEl.textContent = projects.length;
-        if (totalStockEl) totalStockEl.textContent = stocks.length;
+        const { projects, stocks } = dashboardHandler.data;
         
-        const pendingStep2 = projects.filter(p => p.status === 'step1').length;
-        if (pendingStep2El) pendingStep2El.textContent = pendingStep2;
+        if (totalProjectsEl) totalProjectsEl.textContent = projects.length;
+        if (totalStocksEl) totalStocksEl.textContent = stocks.length;
+        
+        const pending = projects.filter(p => p.status !== 'completed').length;
+        if (pendingDeliveryEl) pendingDeliveryEl.textContent = pending;
         
         const today = new Date().toDateString();
         const completedToday = [...projects, ...stocks].filter(item => {
@@ -428,11 +580,12 @@ const dashboardHandler = {
             <tr>
                 <td>${project.projectName}</td>
                 <td>${project.contactPerson}</td>
-                <td>-</td>
+                <td>${project.equipmentCount || 0}</td>
                 <td><span class="status-badge status-${project.status || 'step1'}">${dashboardHandler.getStatusText(project.status)}</span></td>
                 <td>${utils.formatDateTime(project.createdTime)}</td>
                 <td>
                     <button class="btn btn-secondary" onclick="dashboardHandler.showDetail('project', '${project.id}')">查看</button>
+                    ${project.status === 'step1' ? `<button class="btn btn-primary" onclick="location.href='project-step2.html?id=${project.id}'">填寫第二階段</button>` : ''}
                 </td>
             </tr>
         `).join('');
@@ -486,11 +639,9 @@ const dashboardHandler = {
         try {
             utils.showLoading();
             
-            // 獲取專案資訊
             const projectResult = await api.getProject(id);
             const project = projectResult.body;
             
-            // 獲取設備列表
             const equipmentResult = await api.getEquipmentsByProject(id);
             const equipments = equipmentResult.body || [];
             
@@ -501,7 +652,17 @@ const dashboardHandler = {
                 contactPhone: project.contact_phone,
                 owner: project.owner,
                 remark: project.remark,
+                status: project.status,
                 createdTime: project.created_time,
+                updatedTime: project.updated_time,
+                // 第二階段欄位
+                expectedDeliveryPeriod: project.expected_delivery_period,
+                expectedDeliveryDate: project.expected_delivery_date,
+                expectedContractPeriod: project.expected_contract_period,
+                contractStartDate: project.contract_start_date,
+                contractEndDate: project.contract_end_date,
+                deliveryAddress: project.delivery_address,
+                specialRequirements: project.special_requirements,
                 equipments: equipments
             };
             
@@ -525,18 +686,38 @@ const dashboardHandler = {
     generateDetailHTML: (item, type) => {
         let html = `
             <div class="info-grid">
-                <div class="info-item"><strong>專案名稱:</strong>${item.projectName}</div>
-                <div class="info-item"><strong>聯絡人:</strong>${item.contactPerson}</div>
-                <div class="info-item"><strong>聯絡信箱:</strong>${item.contactEmail || '-'}</div>
-                <div class="info-item"><strong>聯絡電話:</strong>${item.contactPhone || '-'}</div>
-                <div class="info-item"><strong>負責人:</strong>${item.owner || '-'}</div>
-                <div class="info-item"><strong>建立時間:</strong>${utils.formatDateTime(item.createdTime)}</div>
+                <div class="info-item"><strong>專案名稱： </strong>${item.projectName}</div>
+                <div class="info-item"><strong>聯絡人： </strong>${item.contactPerson}</div>
+                <div class="info-item"><strong>聯絡信箱： </strong>${item.contactEmail || '-'}</div>
+                <div class="info-item"><strong>聯絡電話： </strong>${item.contactPhone || '-'}</div>
+                <div class="info-item"><strong>負責人： </strong>${item.owner || '-'}</div>
+                <div class="info-item"><strong>狀態： </strong><span class="status-badge status-${item.status}">${dashboardHandler.getStatusText(item.status)}</span></div>
+                <div class="info-item"><strong>建立時間： </strong>${utils.formatDateTime(item.createdTime)}</div>
+                ${item.updatedTime ? `<div class="info-item"><strong>更新時間： </strong>${utils.formatDateTime(item.updatedTime)}</div>` : ''}
             </div>
         `;
         
-        // 設備清單
+        // 第二階段資訊
+        if (item.status !== 'step1') {
+            html += `
+                <br>
+                <h4>交貨資訊</h4>
+                <br>
+                <div class="info-grid">
+                    <div class="info-item"><strong>預計交貨期： </strong>${item.expectedDeliveryPeriod || '-'}</div>
+                    <div class="info-item"><strong>預計交貨日： </strong>${item.expectedDeliveryDate ? utils.formatDate(item.expectedDeliveryDate) : '-'}</div>
+                    <div class="info-item"><strong>預計履約期： </strong>${item.expectedContractPeriod || '-'}</div>
+                    <div class="info-item"><strong>履約開始日： </strong>${item.contractStartDate ? utils.formatDate(item.contractStartDate) : '-'}</div>
+                    <div class="info-item"><strong>履約結束日： </strong>${item.contractEndDate ? utils.formatDate(item.contractEndDate) : '-'}</div>
+                    <div class="info-item"><strong>交貨地址： </strong>${item.deliveryAddress || '-'}</div>
+                    ${item.specialRequirements ? `<div class="info-item" style="grid-column: 1 / -1;"><strong>特殊需求： </strong>${item.specialRequirements}</div>` : ''}
+                </div>
+            `;
+        }
+        
         if (item.equipments && item.equipments.length > 0) {
             html += `
+                <br>
                 <h4>設備清單</h4>
                 <table class="data-table">
                     <thead>
@@ -561,7 +742,6 @@ const dashboardHandler = {
             html += '<h4>設備清單</h4><p>暫無設備資料</p>';
         }
         
-        // 備註
         if (item.remark) {
             html += `<h4>備註</h4><p>${item.remark}</p>`;
         }
@@ -577,7 +757,6 @@ const dashboardHandler = {
             console.log('Filter:', typeFilter.value, statusFilter.value);
         }
         
-        // 重新渲染表格
         dashboardHandler.updateTables();
     },
 
@@ -591,7 +770,6 @@ const dashboardHandler = {
             });
         });
         
-        // 點擊外部關閉
         window.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.style.display = 'none';
@@ -610,22 +788,24 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'project-step1.html':
             projectStep1Handler.init();
             break;
+        case 'project-step2.html':
+            projectStep2Handler.init();
+            break;
         case 'dashboard.html':
             dashboardHandler.init();
             break;
         default:
-            console.log('Page loaded:', currentPage);
+            console.log('📄 Page loaded:', currentPage);
     }
 });
 
 // 全局錯誤處理
 window.addEventListener('error', (e) => {
-    console.error('Global error:', e.error);
+    console.error('💥 Global error:', e.error);
 });
 
-// 未處理的 Promise 錯誤
 window.addEventListener('unhandledrejection', (e) => {
-    console.error('Unhandled promise rejection:', e.reason);
+    console.error('💥 Unhandled promise rejection:', e.reason);
 });
 
 // 匯出供其他腳本使用
@@ -633,5 +813,6 @@ window.ProjectReportSystem = {
     utils,
     api,
     projectStep1Handler,
+    projectStep2Handler,
     dashboardHandler
 };
