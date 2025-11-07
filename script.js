@@ -231,7 +231,7 @@ const projectStep1Handler = {
                 throw new Error('無法取得專案 ID');
             }
             
-            // 步驟 2: 建立設備（如果有設備）
+            // 步驟 2: 建立設備(如果有設備)
             if (equipments.length > 0) {
                 console.log('⏳ 正在建立設備清單...');
                 try {
@@ -477,6 +477,16 @@ const dashboardHandler = {
         dashboardHandler.updateTables();
         dashboardHandler.initModal();
         
+        // 綁定重新整理按鈕
+        const refreshBtn = document.getElementById('refreshData');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                await dashboardHandler.loadData();
+                dashboardHandler.updateStats();
+                dashboardHandler.updateTables();
+            });
+        }
+        
         const typeFilter = document.getElementById('typeFilter');
         const statusFilter = document.getElementById('statusFilter');
         
@@ -505,10 +515,16 @@ const dashboardHandler = {
                     contactPhone: p.contact_phone,
                     owner: p.owner,
                     remark: p.remark,
-                    status: p.status || 'step1',
+                    status: dashboardHandler.determineStatus(p),
                     createdTime: p.created_time,
                     updatedTime: p.updated_time,
                     expectedDeliveryDate: p.expected_delivery_date,
+                    expectedDeliveryPeriod: p.expected_delivery_period,
+                    expectedContractPeriod: p.expected_contract_period,
+                    contractStartDate: p.contract_start_date,
+                    contractEndDate: p.contract_end_date,
+                    deliveryAddress: p.delivery_address,
+                    specialRequirements: p.special_requirements,
                     equipmentCount: 0 // 初始為 0
                 }));
 
@@ -539,25 +555,81 @@ const dashboardHandler = {
         }
     },
 
+    determineStatus: (project) => {
+        // 判斷專案狀態
+        // 如果有預計交貨日期，表示已填寫第二階段
+        if (project.expected_delivery_date && project.expected_delivery_period) {
+            return 'completed';
+        }
+        // 如果有部分第二階段資料，表示正在填寫第二階段
+        if (project.expected_delivery_period || project.expected_delivery_date) {
+            return 'step2';
+        }
+        // 否則是第一階段
+        return 'step1';
+    },
+
     updateStats: () => {
         const totalProjectsEl = document.getElementById('totalProjects');
-        const totalStocksEl = document.getElementById('totalStocks');
-        const pendingDeliveryEl = document.getElementById('pendingDelivery');
+        const totalStockEl = document.getElementById('totalStock');
+        const pendingStep2El = document.getElementById('pendingStep2');
         const completedTodayEl = document.getElementById('completedToday');
         
         const { projects, stocks } = dashboardHandler.data;
         
-        if (totalProjectsEl) totalProjectsEl.textContent = projects.length;
-        if (totalStocksEl) totalStocksEl.textContent = stocks.length;
+        // 專案總數
+        if (totalProjectsEl) {
+            totalProjectsEl.textContent = projects.length;
+        }
         
-        const pending = projects.filter(p => p.status !== 'completed').length;
-        if (pendingDeliveryEl) pendingDeliveryEl.textContent = pending;
+        // 現貨總數 (目前系統沒有現貨功能,顯示 0)
+        if (totalStockEl) {
+            totalStockEl.textContent = stocks.length;
+        }
         
-        const today = new Date().toDateString();
-        const completedToday = [...projects, ...stocks].filter(item => {
-            return new Date(item.createdTime).toDateString() === today;
+        // 待填第二階段 (狀態為 step1 的專案數)
+        const pendingStep2Count = projects.filter(p => p.status === 'step1').length;
+        if (pendingStep2El) {
+            pendingStep2El.textContent = pendingStep2Count;
+        }
+        
+        // 今日完成 (今天建立或更新的專案數)
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0]; // 格式: YYYY-MM-DD
+        
+        const completedToday = projects.filter(p => {
+            if (!p.createdTime) return false;
+            
+            // 取得建立日期的 YYYY-MM-DD 部分
+            const createdDate = new Date(p.createdTime);
+            const createdDateStr = createdDate.toISOString().split('T')[0];
+            
+            // 也檢查更新時間
+            let updatedDateStr = null;
+            if (p.updatedTime) {
+                const updatedDate = new Date(p.updatedTime);
+                updatedDateStr = updatedDate.toISOString().split('T')[0];
+            }
+            
+            return createdDateStr === todayStr || updatedDateStr === todayStr;
         }).length;
-        if (completedTodayEl) completedTodayEl.textContent = completedToday;
+        
+        if (completedTodayEl) {
+            completedTodayEl.textContent = completedToday;
+        }
+        
+        console.log('📊 統計數據已更新:', {
+            今天日期: todayStr,
+            總專案數: projects.length,
+            現貨總數: stocks.length,
+            待填第二階段: pendingStep2Count,
+            今日完成: completedToday,
+            專案資料: projects.map(p => ({
+                名稱: p.projectName,
+                建立日期: p.createdTime ? new Date(p.createdTime).toISOString().split('T')[0] : null,
+                更新日期: p.updatedTime ? new Date(p.updatedTime).toISOString().split('T')[0] : null
+            }))
+        });
     },
 
     updateTables: () => {
@@ -572,17 +644,25 @@ const dashboardHandler = {
         const { projects } = dashboardHandler.data;
         
         if (projects.length === 0) {
-            tbody.innerHTML = '<tr class="no-data"><td colspan="6">暫無專案資料</td></tr>';
+            tbody.innerHTML = '<tr class="no-data"><td colspan="7">暫無專案資料</td></tr>';
             return;
         }
         
-        tbody.innerHTML = projects.map(project => `
+        // 按建立日期降序排序(最新的在最上面)
+        const sortedProjects = [...projects].sort((a, b) => {
+            const dateA = new Date(a.createdTime);
+            const dateB = new Date(b.createdTime);
+            return dateB - dateA; // 降序排列
+        });
+        
+        tbody.innerHTML = sortedProjects.map(project => `
             <tr>
                 <td>${project.projectName}</td>
                 <td>${project.contactPerson}</td>
                 <td>${project.equipmentCount || 0}</td>
                 <td><span class="status-badge status-${project.status || 'step1'}">${dashboardHandler.getStatusText(project.status)}</span></td>
                 <td>${utils.formatDateTime(project.createdTime)}</td>
+                <td>${project.updatedTime ? utils.formatDateTime(project.updatedTime) : '-'}</td>
                 <td>
                     <button class="btn btn-secondary" onclick="dashboardHandler.showDetail('project', '${project.id}')">查看</button>
                     ${project.status === 'step1' ? `<button class="btn btn-primary" onclick="location.href='project-step2.html?id=${project.id}'">填寫第二階段</button>` : ''}
@@ -652,7 +732,7 @@ const dashboardHandler = {
                 contactPhone: project.contact_phone,
                 owner: project.owner,
                 remark: project.remark,
-                status: project.status,
+                status: dashboardHandler.determineStatus(project),
                 createdTime: project.created_time,
                 updatedTime: project.updated_time,
                 // 第二階段欄位
@@ -686,14 +766,14 @@ const dashboardHandler = {
     generateDetailHTML: (item, type) => {
         let html = `
             <div class="info-grid">
-                <div class="info-item"><strong>專案名稱： </strong>${item.projectName}</div>
-                <div class="info-item"><strong>聯絡人： </strong>${item.contactPerson}</div>
-                <div class="info-item"><strong>聯絡信箱： </strong>${item.contactEmail || '-'}</div>
-                <div class="info-item"><strong>聯絡電話： </strong>${item.contactPhone || '-'}</div>
-                <div class="info-item"><strong>負責人： </strong>${item.owner || '-'}</div>
-                <div class="info-item"><strong>狀態： </strong><span class="status-badge status-${item.status}">${dashboardHandler.getStatusText(item.status)}</span></div>
-                <div class="info-item"><strong>建立時間： </strong>${utils.formatDateTime(item.createdTime)}</div>
-                ${item.updatedTime ? `<div class="info-item"><strong>更新時間： </strong>${utils.formatDateTime(item.updatedTime)}</div>` : ''}
+                <div class="info-item"><strong>專案名稱：</strong>${item.projectName}</div>
+                <div class="info-item"><strong>聯絡人：</strong>${item.contactPerson}</div>
+                <div class="info-item"><strong>聯絡信箱：</strong>${item.contactEmail || '-'}</div>
+                <div class="info-item"><strong>聯絡電話：</strong>${item.contactPhone || '-'}</div>
+                <div class="info-item"><strong>負責人：</strong>${item.owner || '-'}</div>
+                <div class="info-item"><strong>狀態：</strong><span class="status-badge status-${item.status}">${dashboardHandler.getStatusText(item.status)}</span></div>
+                <div class="info-item"><strong>建立時間：</strong>${utils.formatDateTime(item.createdTime)}</div>
+                ${item.updatedTime ? `<div class="info-item"><strong>更新時間：</strong>${utils.formatDateTime(item.updatedTime)}</div>` : ''}
             </div>
         `;
         
@@ -704,13 +784,13 @@ const dashboardHandler = {
                 <h4>交貨資訊</h4>
                 <br>
                 <div class="info-grid">
-                    <div class="info-item"><strong>預計交貨期： </strong>${item.expectedDeliveryPeriod || '-'}</div>
-                    <div class="info-item"><strong>預計交貨日： </strong>${item.expectedDeliveryDate ? utils.formatDate(item.expectedDeliveryDate) : '-'}</div>
-                    <div class="info-item"><strong>預計履約期： </strong>${item.expectedContractPeriod || '-'}</div>
-                    <div class="info-item"><strong>履約開始日： </strong>${item.contractStartDate ? utils.formatDate(item.contractStartDate) : '-'}</div>
-                    <div class="info-item"><strong>履約結束日： </strong>${item.contractEndDate ? utils.formatDate(item.contractEndDate) : '-'}</div>
-                    <div class="info-item"><strong>交貨地址： </strong>${item.deliveryAddress || '-'}</div>
-                    ${item.specialRequirements ? `<div class="info-item" style="grid-column: 1 / -1;"><strong>特殊需求： </strong>${item.specialRequirements}</div>` : ''}
+                    <div class="info-item"><strong>預計交貨期：</strong>${item.expectedDeliveryPeriod || '-'}</div>
+                    <div class="info-item"><strong>預計交貨日：</strong>${item.expectedDeliveryDate ? utils.formatDate(item.expectedDeliveryDate) : '-'}</div>
+                    <div class="info-item"><strong>預計履約期：</strong>${item.expectedContractPeriod || '-'}</div>
+                    <div class="info-item"><strong>履約開始日：</strong>${item.contractStartDate ? utils.formatDate(item.contractStartDate) : '-'}</div>
+                    <div class="info-item"><strong>履約結束日：</strong>${item.contractEndDate ? utils.formatDate(item.contractEndDate) : '-'}</div>
+                    <div class="info-item"><strong>交貨地址：</strong>${item.deliveryAddress || '-'}</div>
+                    ${item.specialRequirements ? `<div class="info-item" style="grid-column: 1 / -1;"><strong>特殊需求：</strong>${item.specialRequirements}</div>` : ''}
                 </div>
             `;
         }
@@ -719,6 +799,7 @@ const dashboardHandler = {
             html += `
                 <br>
                 <h4>設備清單</h4>
+                <br>
                 <table class="data-table">
                     <thead>
                         <tr>

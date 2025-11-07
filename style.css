@@ -341,15 +341,40 @@ main {
     font-size: 1.3em;
 }
 
-/* 表格樣式 */
+/* 表格樣式 - 修改此處以支援捲軸 */
 .table-container {
     overflow-x: auto;
+    max-height: 400px; /* 約可顯示5-6筆資料的高度 */
+    overflow-y: auto;
+    position: relative;
+    border: 1px solid #ecf0f1;
+    border-radius: 8px;
+}
+
+/* 自訂捲軸樣式 */
+.table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 8px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #bdc3c7;
+    border-radius: 8px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6;
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin-top: 0;
 }
 
 .data-table th,
@@ -365,6 +390,8 @@ main {
     color: #2c3e50;
     position: sticky;
     top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 .data-table tbody tr:hover {
@@ -540,7 +567,11 @@ footer {
     }
     
     header h1 {
-        font-size: 2em;
+        font-size: 1.8em;
+    }
+    
+    header p {
+        font-size: 0.95em;
     }
     
     .card-container {
@@ -562,9 +593,23 @@ footer {
         align-items: stretch;
     }
     
+    .filter-group select,
+    .filter-group .btn {
+        font-size: 14px;
+        width: 100%;
+    }
+    
     .stats-cards {
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-number {
+        font-size: 2em;
     }
     
     .modal-content {
@@ -572,22 +617,165 @@ footer {
         width: 95%;
     }
     
+    /* 資料區段調整 */
+    .data-section {
+        padding: 15px;
+    }
+    
+    .data-section h3 {
+        font-size: 1.1em;
+        margin-bottom: 15px;
+    }
+    
+    /* 表格響應式調整 */
+    .table-container {
+        max-height: 350px;
+        border-radius: 5px;
+    }
+    
     .data-table {
-        font-size: 14px;
+        font-size: 13px;
     }
     
     .data-table th,
     .data-table td {
-        padding: 8px 6px;
+        padding: 10px 6px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    
+    .data-table th {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    
+    /* 按鈕在表格中的調整 */
+    .data-table td .btn {
+        padding: 8px 12px;
+        font-size: 13px;
+        margin: 3px 0;
+        display: inline-block;
+        min-width: 60px;
+        white-space: nowrap;
+    }
+    
+    /* 操作欄位調整 */
+    .data-table td:last-child {
+        white-space: nowrap;
+        min-width: 140px;
+    }
+    
+    .status-badge {
+        font-size: 0.8em;
+        padding: 4px 8px;
+        display: inline-block;
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+    header h1 {
+        font-size: 1.5em;
+    }
+    
     .stats-cards {
         grid-template-columns: 1fr;
     }
     
     .stat-number {
-        font-size: 2em;
+        font-size: 2.2em;
+    }
+    
+    /* 調整表格字體和間距 */
+    .data-table {
+        font-size: 12px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px 4px;
+    }
+    
+    .data-table th {
+        font-size: 11px;
+    }
+    
+    /* 進一步調整按鈕 */
+    .data-table td .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        margin: 2px 0;
+    }
+    
+    /* 縮小操作欄最小寬度 */
+    .data-table td:last-child {
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+    
+    header {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 1.3em;
+    }
+    
+    header p {
+        font-size: 0.85em;
+    }
+    
+    .data-section {
+        padding: 12px;
+    }
+    
+    .data-section h3 {
+        font-size: 1em;
+    }
+    
+    /* 更小螢幕的表格調整 */
+    .table-container {
+        max-height: 300px;
+    }
+    
+    .data-table {
+        font-size: 11px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 6px 3px;
+    }
+    
+    .data-table th {
+        font-size: 10px;
+    }
+    
+    /* 小螢幕按鈕調整 */
+    .data-table td .btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        margin: 2px 0;
+        min-width: 50px;
+    }
+    
+    .data-table td:last-child {
+        min-width: 100px;
+    }
+    
+    .status-badge {
+        font-size: 0.75em;
+        padding: 3px 6px;
+    }
+    
+    /* 篩選控制項調整 */
+    .filter-group select,
+    .filter-group .btn {
+        font-size: 13px;
+        padding: 10px;
     }
 }
