@@ -1,4 +1,4 @@
-// script.js
+// script.js - 完整整合版本(包含專案報備和現貨報備)
 
 // API 基礎設定
 const API_BASE_URL = 'http://localhost:8080/authority/v1.0';
@@ -57,7 +57,6 @@ const api = {
 
             console.log('📥 Response status:', response.status);
             
-            // 嘗試解析 JSON
             let data;
             try {
                 data = await response.json();
@@ -67,13 +66,10 @@ const api = {
                 throw new Error('伺服器回應格式錯誤');
             }
 
-            // 檢查 HTTP 狀態碼
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // 檢查後端返回的狀態碼
-            // 後端成功時回傳 code: 200,失敗時回傳其他 code
             if (data.code && data.code >= 400) {
                 throw new Error(data.message || '請求失敗');
             }
@@ -82,7 +78,6 @@ const api = {
         } catch (error) {
             console.error('❌ API request failed:', error);
             
-            // 提供更友善的錯誤訊息
             if (error.message === 'Failed to fetch') {
                 throw new Error('無法連接到伺服器,請確認後端服務是否運行在 http://localhost:8080');
             }
@@ -91,6 +86,7 @@ const api = {
         }
     },
 
+    // ========== 專案報備 API ==========
     createProject: async (data) => {
         return await api.request('/projects', {
             method: 'POST',
@@ -148,7 +144,6 @@ const api = {
     updateProject: async (id, data) => {
         const requestBody = {};
         
-        // 只包含有值的欄位
         if (data.projectName) requestBody.p_name = data.projectName;
         if (data.contactPerson) requestBody.contact_name = data.contactPerson;
         if (data.contactPhone) requestBody.contact_phone = data.contactPhone;
@@ -156,7 +151,6 @@ const api = {
         if (data.esstPerson) requestBody.owner = data.esstPerson;
         if (data.remarks) requestBody.remark = data.remarks;
         
-        // 第二階段欄位
         if (data.expectedDeliveryPeriod) requestBody.expected_delivery_period = data.expectedDeliveryPeriod;
         if (data.expectedDeliveryDate) requestBody.expected_delivery_date = data.expectedDeliveryDate;
         if (data.expectedContractPeriod) requestBody.expected_contract_period = data.expectedContractPeriod;
@@ -177,10 +171,86 @@ const api = {
         return await api.request(`/projects/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    // ========== 現貨報備 API ==========
+    createStock: async (data) => {
+        return await api.request('/stocks', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    createStockEquipmentBatch: async (stockID, equipments) => {
+        console.log('📤 Creating stock equipment batch for stock:', stockID);
+        console.log('📤 Equipment data:', JSON.stringify(equipments, null, 2));
+        
+        const requestBody = {
+            stock_id: stockID,
+            equipments: equipments
+        };
+        
+        console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+        
+        return await api.request('/stock-equipments/batch', {
+            method: 'POST',
+            body: JSON.stringify(requestBody)
+        });
+    },
+
+    getStocks: async (page = 1, limit = 20) => {
+        const params = new URLSearchParams({ page, limit });
+        return await api.request(`/stocks?${params}`, {
+            method: 'GET'
+        });
+    },
+
+    getStock: async (id) => {
+        return await api.request(`/stocks/${id}`, {
+            method: 'GET'
+        });
+    },
+
+    getStockEquipmentsByStock: async (stockID) => {
+        return await api.request(`/stock-equipments/stock/${stockID}`, {
+            method: 'GET'
+        });
+    },
+
+    updateStock: async (id, data) => {
+        const requestBody = {};
+        
+        if (data.stockName) requestBody.stock_name = data.stockName;
+        if (data.contactPerson) requestBody.contact_name = data.contactPerson;
+        if (data.contactPhone) requestBody.contact_phone = data.contactPhone;
+        if (data.contactEmail) requestBody.contact_email = data.contactEmail;
+        if (data.esstPerson) requestBody.owner = data.esstPerson;
+        if (data.remarks) requestBody.remark = data.remarks;
+        
+        if (data.expectedDeliveryPeriod) requestBody.expected_delivery_period = data.expectedDeliveryPeriod;
+        if (data.expectedDeliveryDate) requestBody.expected_delivery_date = data.expectedDeliveryDate;
+        if (data.expectedContractPeriod) requestBody.expected_contract_period = data.expectedContractPeriod;
+        if (data.contractStartDate) requestBody.contract_start_date = data.contractStartDate;
+        if (data.contractEndDate) requestBody.contract_end_date = data.contractEndDate;
+        if (data.deliveryAddress) requestBody.delivery_address = data.deliveryAddress;
+        if (data.specialRequirements) requestBody.special_requirements = data.specialRequirements;
+        
+        console.log('📤 Update stock request body:', requestBody);
+        
+        return await api.request(`/stocks/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(requestBody)
+        });
+    },
+
+    deleteStock: async (id) => {
+        return await api.request(`/stocks/${id}`, {
+            method: 'DELETE'
+        });
     }
 };
 
-// 專案第一階段表單處理
+// ========== 專案第一階段表單處理 ==========
 const projectStep1Handler = {
     init: () => {
         const form = document.getElementById('projectStep1Form');
@@ -204,7 +274,6 @@ const projectStep1Handler = {
         try {
             const formData = new FormData(e.target);
             
-            // 收集專案基本資料
             const projectData = {
                 projectName: formData.get('projectName'),
                 contactPerson: formData.get('contactPerson'),
@@ -214,24 +283,20 @@ const projectStep1Handler = {
                 remarks: formData.get('remarks')
             };
             
-            // 收集設備資料
             const equipments = projectStep1Handler.collectEquipments(formData);
             
             console.log('📋 提交資料:', { projectData, equipments });
             
-            // 步驟 1: 建立專案
             console.log('⏳ 正在建立專案...');
             const projectResult = await api.createProject(projectData);
             console.log('✅ 專案建立成功:', projectResult);
             
-            // 從回應中取得專案 ID
             const projectId = projectResult.body;
             
             if (!projectId) {
                 throw new Error('無法取得專案 ID');
             }
             
-            // 步驟 2: 建立設備(如果有設備)
             if (equipments.length > 0) {
                 console.log('⏳ 正在建立設備清單...');
                 try {
@@ -239,7 +304,6 @@ const projectStep1Handler = {
                     console.log('✅ 設備建立成功:', equipmentResult);
                 } catch (equipError) {
                     console.warn('⚠️ 設備建立失敗，但專案已建立:', equipError);
-                    // 專案已建立成功，設備失敗只顯示警告
                     utils.hideLoading();
                     utils.showSuccess(`專案建立成功！\n專案 ID: ${projectId}\n\n注意：設備清單建立失敗，請稍後手動新增。`);
                     setTimeout(() => {
@@ -252,7 +316,6 @@ const projectStep1Handler = {
             utils.hideLoading();
             utils.showSuccess(`第一階段報備成功！\n專案 ID: ${projectId}\n\n得標後請記得填寫第二階段資訊。`);
             
-            // 跳轉回首頁
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 2000);
@@ -326,7 +389,7 @@ const projectStep1Handler = {
     }
 };
 
-// 專案第二階段表單處理
+// ========== 專案第二階段表單處理 ==========
 const projectStep2Handler = {
     init: () => {
         const form = document.getElementById('projectStep2Form');
@@ -335,7 +398,6 @@ const projectStep2Handler = {
             form.addEventListener('submit', projectStep2Handler.handleSubmit);
         }
 
-        // 從 URL 取得專案 ID
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('id');
         
@@ -360,7 +422,6 @@ const projectStep2Handler = {
             if (result.code === 200 && result.body) {
                 const project = result.body;
                 
-                // 顯示專案基本資訊
                 const displayProjectName = document.getElementById('displayProjectName');
                 const displayContactPerson = document.getElementById('displayContactPerson');
                 const projectIdInput = document.getElementById('projectId');
@@ -375,12 +436,10 @@ const projectStep2Handler = {
                     projectIdInput.value = projectId;
                 }
                 
-                // 如果已有第二階段資料，填入表單
                 if (project.expected_delivery_period) {
                     document.getElementById('expectedDeliveryPeriod').value = project.expected_delivery_period;
                 }
                 if (project.expected_delivery_date) {
-                    // 將 ISO 日期轉換為 input[type="date"] 格式 (YYYY-MM-DD)
                     const date = new Date(project.expected_delivery_date);
                     document.getElementById('expectedDeliveryDate').value = date.toISOString().split('T')[0];
                 }
@@ -431,7 +490,6 @@ const projectStep2Handler = {
                 throw new Error('專案 ID 不存在');
             }
             
-            // 收集第二階段資料
             const updateData = {
                 expectedDeliveryPeriod: formData.get('expectedDeliveryPeriod'),
                 expectedDeliveryDate: formData.get('expectedDeliveryDate'),
@@ -444,14 +502,12 @@ const projectStep2Handler = {
             
             console.log('📋 提交第二階段資料:', updateData);
             
-            // 更新專案
             const result = await api.updateProject(projectId, updateData);
             console.log('✅ 更新成功:', result);
             
             utils.hideLoading();
             utils.showSuccess('第二階段報備完成！');
             
-            // 跳轉回首頁
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 1500);
@@ -464,7 +520,153 @@ const projectStep2Handler = {
     }
 };
 
-// Dashboard 處理
+// ========== 現貨報備表單處理 ==========
+const stockReportHandler = {
+    init: () => {
+        const form = document.getElementById('stockReportForm');
+        const addBtn = document.getElementById('addStockEquipment');
+        
+        if (form) {
+            form.addEventListener('submit', stockReportHandler.handleSubmit);
+        }
+        
+        if (addBtn) {
+            addBtn.addEventListener('click', stockReportHandler.addEquipment);
+        }
+
+        stockReportHandler.updateRemoveButtons();
+    },
+
+    handleSubmit: async (e) => {
+        e.preventDefault();
+        utils.showLoading();
+
+        try {
+            const formData = new FormData(e.target);
+            
+            const stockData = {
+                stock_name: formData.get('stockName'),
+                contact_name: formData.get('contactName'),
+                contact_email: formData.get('contactEmail') || '',
+                contact_phone: formData.get('contactPhone') || '',
+                owner: formData.get('esstPerson') || '',
+                expected_delivery_period: formData.get('expectedDeliveryPeriod'),
+                expected_delivery_date: formData.get('expectedDeliveryDate'),
+                expected_contract_period: formData.get('expectedContractPeriod'),
+                contract_start_date: formData.get('contractStartDate') || '',
+                contract_end_date: formData.get('contractEndDate') || '',
+                delivery_address: formData.get('deliveryAddress') || '',
+                special_requirements: formData.get('specialRequirements') || '',
+                remark: formData.get('remarks') || ''
+            };
+            
+            const equipments = stockReportHandler.collectEquipments(formData);
+            
+            console.log('📋 提交現貨報備資料:', { stockData, equipments });
+            
+            console.log('⏳ 正在建立現貨報備...');
+            const stockResult = await api.createStock(stockData);
+            console.log('✅ 現貨報備建立成功:', stockResult);
+            
+            const stockID = stockResult.body;
+            
+            if (!stockID) {
+                throw new Error('無法取得現貨報備 ID');
+            }
+            
+            if (equipments.length > 0) {
+                console.log('⏳ 正在建立設備清單...');
+                try {
+                    const equipmentResult = await api.createStockEquipmentBatch(stockID, equipments);
+                    console.log('✅ 設備建立成功:', equipmentResult);
+                } catch (equipError) {
+                    console.warn('⚠️ 設備建立失敗，但現貨報備已建立:', equipError);
+                    utils.hideLoading();
+                    utils.showSuccess(`現貨報備建立成功！\n現貨編號: ${stockID}\n\n注意：設備清單建立失敗，請稍後手動新增。`);
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    return;
+                }
+            }
+            
+            utils.hideLoading();
+            utils.showSuccess(`現貨報備成功！\n現貨編號: ${stockID}\n\n報備資訊已完成，請盡快安排出貨。`);
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            
+        } catch (error) {
+            utils.hideLoading();
+            console.error('❌ 提交失敗:', error);
+            utils.showError('提交失敗: ' + error.message);
+        }
+    },
+
+    collectEquipments: (formData) => {
+        const equipments = [];
+        const partNumbers = formData.getAll('partNumber[]');
+        const quantities = formData.getAll('quantity[]');
+        const descriptions = formData.getAll('description[]');
+        
+        for (let i = 0; i < partNumbers.length; i++) {
+            if (partNumbers[i] && quantities[i]) {
+                equipments.push({
+                    part_number: partNumbers[i],
+                    quantity: parseInt(quantities[i]),
+                    description: descriptions[i] || ''
+                });
+            }
+        }
+        
+        return equipments;
+    },
+
+    addEquipment: () => {
+        const list = document.getElementById('stockEquipmentList');
+        const newItem = document.createElement('div');
+        newItem.className = 'equipment-item';
+        newItem.innerHTML = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>料號 *</label>
+                    <input type="text" name="partNumber[]" required placeholder="請輸入料號">
+                </div>
+                <div class="form-group">
+                    <label>數量 *</label>
+                    <input type="number" name="quantity[]" required min="1" placeholder="請輸入數量">
+                </div>
+                <div class="form-group">
+                    <label>設備說明</label>
+                    <input type="text" name="description[]" placeholder="請輸入設備說明">
+                </div>
+                <button type="button" class="btn btn-danger remove-equipment">移除</button>
+            </div>
+        `;
+        
+        list.appendChild(newItem);
+        
+        newItem.querySelector('.remove-equipment').addEventListener('click', function() {
+            newItem.remove();
+            stockReportHandler.updateRemoveButtons();
+        });
+        
+        stockReportHandler.updateRemoveButtons();
+    },
+
+    updateRemoveButtons: () => {
+        const items = document.querySelectorAll('#stockEquipmentList .equipment-item');
+        items.forEach((item, index) => {
+            const removeBtn = item.querySelector('.remove-equipment');
+            if (removeBtn) {
+                removeBtn.style.display = items.length > 1 ? 'block' : 'none';
+            }
+        });
+    }
+};
+
+// ========== Dashboard 處理 ==========
 const dashboardHandler = {
     data: {
         projects: [],
@@ -477,7 +679,6 @@ const dashboardHandler = {
         dashboardHandler.updateTables();
         dashboardHandler.initModal();
         
-        // 綁定重新整理按鈕
         const refreshBtn = document.getElementById('refreshData');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', async () => {
@@ -502,11 +703,11 @@ const dashboardHandler = {
         try {
             utils.showLoading();
             
+            // 載入專案資料
             const projectsResult = await api.getProjects(1, 100);
             console.log('📥 Projects loaded:', projectsResult);
             
             if (projectsResult.code === 200 && projectsResult.body) {
-                // 載入專案基本資料
                 const projectsData = projectsResult.body.projects.map(p => ({
                     id: p.p_id,
                     projectName: p.p_name,
@@ -525,10 +726,9 @@ const dashboardHandler = {
                     contractEndDate: p.contract_end_date,
                     deliveryAddress: p.delivery_address,
                     specialRequirements: p.special_requirements,
-                    equipmentCount: 0 // 初始為 0
+                    equipmentCount: 0
                 }));
 
-                // 批次載入每個專案的設備數量
                 const equipmentPromises = projectsData.map(async (project) => {
                     try {
                         const equipmentResult = await api.getEquipmentsByProject(project.id);
@@ -541,10 +741,49 @@ const dashboardHandler = {
                     }
                 });
 
-                // 等待所有設備資料載入完成
                 await Promise.all(equipmentPromises);
-                
                 dashboardHandler.data.projects = projectsData;
+            }
+            
+            // 載入現貨資料
+            const stocksResult = await api.getStocks(1, 100);
+            console.log('📥 Stocks loaded:', stocksResult);
+            
+            if (stocksResult.code === 200 && stocksResult.body) {
+                const stocksData = stocksResult.body.stocks.map(s => ({
+                    id: s.stock_id,
+                    stockName: s.stock_name,
+                    contactPerson: s.contact_name,
+                    contactEmail: s.contact_email,
+                    contactPhone: s.contact_phone,
+                    owner: s.owner,
+                    remark: s.remark,
+                    expectedDeliveryDate: s.expected_delivery_date,
+                    expectedDeliveryPeriod: s.expected_delivery_period,
+                    expectedContractPeriod: s.expected_contract_period,
+                    contractStartDate: s.contract_start_date,
+                    contractEndDate: s.contract_end_date,
+                    deliveryAddress: s.delivery_address,
+                    specialRequirements: s.special_requirements,
+                    createdTime: s.created_time,
+                    updatedTime: s.updated_time,
+                    equipmentCount: 0
+                }));
+
+                const stockEquipmentPromises = stocksData.map(async (stock) => {
+                    try {
+                        const equipmentResult = await api.getStockEquipmentsByStock(stock.id);
+                        if (equipmentResult.code === 200 && equipmentResult.body) {
+                            stock.equipmentCount = equipmentResult.body.length || 0;
+                        }
+                    } catch (error) {
+                        console.warn(`載入現貨 ${stock.id} 的設備失敗:`, error);
+                        stock.equipmentCount = 0;
+                    }
+                });
+
+                await Promise.all(stockEquipmentPromises);
+                dashboardHandler.data.stocks = stocksData;
             }
             
             utils.hideLoading();
@@ -556,16 +795,12 @@ const dashboardHandler = {
     },
 
     determineStatus: (project) => {
-        // 判斷專案狀態
-        // 如果有預計交貨日期，表示已填寫第二階段
         if (project.expected_delivery_date && project.expected_delivery_period) {
             return 'completed';
         }
-        // 如果有部分第二階段資料，表示正在填寫第二階段
         if (project.expected_delivery_period || project.expected_delivery_date) {
             return 'step2';
         }
-        // 否則是第一階段
         return 'step1';
     },
 
@@ -577,59 +812,37 @@ const dashboardHandler = {
         
         const { projects, stocks } = dashboardHandler.data;
         
-        // 專案總數
         if (totalProjectsEl) {
             totalProjectsEl.textContent = projects.length;
         }
         
-        // 現貨總數 (目前系統沒有現貨功能,顯示 0)
         if (totalStockEl) {
             totalStockEl.textContent = stocks.length;
         }
         
-        // 待填第二階段 (狀態為 step1 的專案數)
         const pendingStep2Count = projects.filter(p => p.status === 'step1').length;
         if (pendingStep2El) {
             pendingStep2El.textContent = pendingStep2Count;
         }
         
-        // 今日完成 (今天建立或更新的專案數)
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0]; // 格式: YYYY-MM-DD
+        const todayStr = today.toISOString().split('T')[0];
         
         const completedToday = projects.filter(p => {
             if (!p.createdTime) return false;
-            
-            // 取得建立日期的 YYYY-MM-DD 部分
             const createdDate = new Date(p.createdTime);
             const createdDateStr = createdDate.toISOString().split('T')[0];
-            
-            // 也檢查更新時間
             let updatedDateStr = null;
             if (p.updatedTime) {
                 const updatedDate = new Date(p.updatedTime);
                 updatedDateStr = updatedDate.toISOString().split('T')[0];
             }
-            
             return createdDateStr === todayStr || updatedDateStr === todayStr;
         }).length;
         
         if (completedTodayEl) {
             completedTodayEl.textContent = completedToday;
         }
-        
-        console.log('📊 統計數據已更新:', {
-            今天日期: todayStr,
-            總專案數: projects.length,
-            現貨總數: stocks.length,
-            待填第二階段: pendingStep2Count,
-            今日完成: completedToday,
-            專案資料: projects.map(p => ({
-                名稱: p.projectName,
-                建立日期: p.createdTime ? new Date(p.createdTime).toISOString().split('T')[0] : null,
-                更新日期: p.updatedTime ? new Date(p.updatedTime).toISOString().split('T')[0] : null
-            }))
-        });
     },
 
     updateTables: () => {
@@ -648,11 +861,10 @@ const dashboardHandler = {
             return;
         }
         
-        // 按建立日期降序排序(最新的在最上面)
         const sortedProjects = [...projects].sort((a, b) => {
             const dateA = new Date(a.createdTime);
             const dateB = new Date(b.createdTime);
-            return dateB - dateA; // 降序排列
+            return dateB - dateA;
         });
         
         tbody.innerHTML = sortedProjects.map(project => `
@@ -682,16 +894,21 @@ const dashboardHandler = {
             return;
         }
         
-        tbody.innerHTML = stocks.map(stock => `
+        const sortedStocks = [...stocks].sort((a, b) => {
+            const dateA = new Date(a.createdTime);
+            const dateB = new Date(b.createdTime);
+            return dateB - dateA;
+        });
+        
+        tbody.innerHTML = sortedStocks.map(stock => `
             <tr>
-                <td>${stock.projectName}</td>
+                <td>${stock.stockName}</td>
                 <td>${stock.contactPerson}</td>
-                <td>${stock.equipment ? stock.equipment.length : 0}</td>
-                <td>${utils.formatDate(stock.deliveryDate)}</td>
-                <td><span class="urgent-${stock.urgentLevel}">${dashboardHandler.getUrgentText(stock.urgentLevel)}</span></td>
+                <td>${stock.equipmentCount || 0}</td>
+                <td>${stock.expectedDeliveryDate ? utils.formatDate(stock.expectedDeliveryDate) : '-'}</td>
                 <td>${utils.formatDateTime(stock.createdTime)}</td>
                 <td>
-                    <button class="btn btn-secondary" onclick="dashboardHandler.showDetail('stock', '${stock.id}')">查看</button>
+                    <button class="btn btn-secondary" onclick="dashboardHandler.showStockDetail('${stock.id}')">查看</button>
                 </td>
             </tr>
         `).join('');
@@ -704,15 +921,6 @@ const dashboardHandler = {
             'completed': '已完成'
         };
         return statusMap[status] || '第一階段';
-    },
-
-    getUrgentText: (urgent) => {
-        const urgentMap = {
-            'normal': '一般',
-            'urgent': '急件',
-            'very_urgent': '特急件'
-        };
-        return urgentMap[urgent] || urgent;
     },
 
     showDetail: async (type, id) => {
@@ -735,7 +943,6 @@ const dashboardHandler = {
                 status: dashboardHandler.determineStatus(project),
                 createdTime: project.created_time,
                 updatedTime: project.updated_time,
-                // 第二階段欄位
                 expectedDeliveryPeriod: project.expected_delivery_period,
                 expectedDeliveryDate: project.expected_delivery_date,
                 expectedContractPeriod: project.expected_contract_period,
@@ -763,6 +970,52 @@ const dashboardHandler = {
         }
     },
 
+    showStockDetail: async (stockId) => {
+        try {
+            utils.showLoading();
+            
+            const stockResult = await api.getStock(stockId);
+            const stock = stockResult.body;
+            
+            const equipmentResult = await api.getStockEquipmentsByStock(stockId);
+            const equipments = equipmentResult.body || [];
+            
+            const item = {
+                stockName: stock.stock_name,
+                contactPerson: stock.contact_name,
+                contactEmail: stock.contact_email,
+                contactPhone: stock.contact_phone,
+                owner: stock.owner,
+                remark: stock.remark,
+                createdTime: stock.created_time,
+                updatedTime: stock.updated_time,
+                expectedDeliveryPeriod: stock.expected_delivery_period,
+                expectedDeliveryDate: stock.expected_delivery_date,
+                expectedContractPeriod: stock.expected_contract_period,
+                contractStartDate: stock.contract_start_date,
+                contractEndDate: stock.contract_end_date,
+                deliveryAddress: stock.delivery_address,
+                specialRequirements: stock.special_requirements,
+                equipments: equipments
+            };
+            
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            
+            if (modal && title && content) {
+                title.textContent = `現貨 - ${item.stockName}`;
+                content.innerHTML = dashboardHandler.generateStockDetailHTML(item);
+                modal.style.display = 'block';
+            }
+            
+            utils.hideLoading();
+        } catch (error) {
+            utils.hideLoading();
+            utils.showError('載入詳情失敗: ' + error.message);
+        }
+    },
+
     generateDetailHTML: (item, type) => {
         let html = `
             <div class="info-grid">
@@ -777,7 +1030,6 @@ const dashboardHandler = {
             </div>
         `;
         
-        // 第二階段資訊
         if (item.status !== 'step1') {
             html += `
                 <br>
@@ -794,6 +1046,66 @@ const dashboardHandler = {
                 </div>
             `;
         }
+        
+        if (item.equipments && item.equipments.length > 0) {
+            html += `
+                <br>
+                <h4>設備清單</h4>
+                <br>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>料號</th>
+                            <th>數量</th>
+                            <th>說明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${item.equipments.map(eq => `
+                            <tr>
+                                <td>${eq.part_number}</td>
+                                <td>${eq.quantity}</td>
+                                <td>${eq.description || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            html += '<h4>設備清單</h4><p>暫無設備資料</p>';
+        }
+        
+        if (item.remark) {
+            html += `<h4>備註</h4><p>${item.remark}</p>`;
+        }
+        
+        return html;
+    },
+
+    generateStockDetailHTML: (item) => {
+        let html = `
+            <div class="info-grid">
+                <div class="info-item"><strong>項目名稱：</strong>${item.stockName}</div>
+                <div class="info-item"><strong>聯絡人：</strong>${item.contactPerson}</div>
+                <div class="info-item"><strong>聯絡信箱：</strong>${item.contactEmail || '-'}</div>
+                <div class="info-item"><strong>聯絡電話：</strong>${item.contactPhone || '-'}</div>
+                <div class="info-item"><strong>負責人：</strong>${item.owner || '-'}</div>
+                <div class="info-item"><strong>建立時間：</strong>${utils.formatDateTime(item.createdTime)}</div>
+                ${item.updatedTime ? `<div class="info-item"><strong>更新時間：</strong>${utils.formatDateTime(item.updatedTime)}</div>` : ''}
+            </div>
+            <br>
+            <h4>交貨資訊</h4>
+            <br>
+            <div class="info-grid">
+                <div class="info-item"><strong>預計交貨期：</strong>${item.expectedDeliveryPeriod || '-'}</div>
+                <div class="info-item"><strong>預計交貨日：</strong>${item.expectedDeliveryDate ? utils.formatDate(item.expectedDeliveryDate) : '-'}</div>
+                <div class="info-item"><strong>預計履約期：</strong>${item.expectedContractPeriod || '-'}</div>
+                <div class="info-item"><strong>履約開始日：</strong>${item.contractStartDate ? utils.formatDate(item.contractStartDate) : '-'}</div>
+                <div class="info-item"><strong>履約結束日：</strong>${item.contractEndDate ? utils.formatDate(item.contractEndDate) : '-'}</div>
+                <div class="info-item"><strong>交貨地址：</strong>${item.deliveryAddress || '-'}</div>
+                ${item.specialRequirements ? `<div class="info-item" style="grid-column: 1 / -1;"><strong>特殊需求：</strong>${item.specialRequirements}</div>` : ''}
+            </div>
+        `;
         
         if (item.equipments && item.equipments.length > 0) {
             html += `
@@ -859,7 +1171,7 @@ const dashboardHandler = {
     }
 };
 
-// 頁面初始化
+// ========== 頁面初始化 ==========
 document.addEventListener('DOMContentLoaded', () => {
     const currentPage = window.location.pathname.split('/').pop();
     
@@ -871,6 +1183,9 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
         case 'project-step2.html':
             projectStep2Handler.init();
+            break;
+        case 'stock-report.html':
+            stockReportHandler.init();
             break;
         case 'dashboard.html':
             dashboardHandler.init();
@@ -895,5 +1210,6 @@ window.ProjectReportSystem = {
     api,
     projectStep1Handler,
     projectStep2Handler,
+    stockReportHandler,
     dashboardHandler
 };

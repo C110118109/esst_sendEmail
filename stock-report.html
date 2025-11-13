@@ -18,36 +18,42 @@
 
         <main>
             <form id="stockReportForm" class="form-container">
-                <div class="form-group">
-                    <label for="stockProjectName">項目名稱 *</label>
-                    <input type="text" id="stockProjectName" name="projectName" required 
-                           placeholder="請輸入現貨項目名稱">
+                <!-- 基本資訊 -->
+                <div class="form-section">
+                    <h3>基本資訊</h3>
+                    
+                    <div class="form-group">
+                        <label for="stockName">項目名稱 *</label>
+                        <input type="text" id="stockName" name="stockName" required 
+                               placeholder="請輸入現貨項目名稱">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactName">聯絡人 *</label>
+                        <input type="text" id="contactName" name="contactName" required 
+                               placeholder="請輸入聯絡人姓名">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactEmail">聯絡人信箱</label>
+                        <input type="email" id="contactEmail" name="contactEmail" 
+                               placeholder="請輸入聯絡人信箱">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactPhone">聯絡人電話</label>
+                        <input type="tel" id="contactPhone" name="contactPhone" 
+                               placeholder="請輸入聯絡人電話">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="esstPerson">雙欣負責人</label>
+                        <input type="text" id="esstPerson" name="esstPerson" 
+                               placeholder="請輸入雙欣負責人姓名">
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="stockContactPerson">聯絡人 *</label>
-                    <input type="text" id="stockContactPerson" name="contactPerson" required 
-                           placeholder="請輸入聯絡人姓名">
-                </div>
-
-                <div class="form-group">
-                    <label for="stockContactEmail">聯絡人信箱</label>
-                    <input type="email" id="stockContactEmail" name="contactEmail" 
-                           placeholder="請輸入聯絡人信箱">
-                </div>
-
-                <div class="form-group">
-                    <label for="stockContactPhone">聯絡人電話</label>
-                    <input type="tel" id="stockContactPhone" name="contactPhone" 
-                           placeholder="請輸入聯絡人電話">
-                </div>
-
-                <div class="form-group">
-                    <label for="esstPerson">雙欣負責人</label>
-                    <input type="text" id="esstPerson" name="esstPerson" 
-                           placeholder="請輸入雙欣負責人姓名">
-                </div>
-
+                <!-- 設備清單 -->
                 <div class="form-section">
                     <h3>設備清單</h3>
                     <div id="stockEquipmentList">
@@ -75,13 +81,14 @@
                     <button type="button" id="addStockEquipment" class="btn btn-secondary">+ 新增設備</button>
                 </div>
 
-                <form id="projectStep2Form" class="form-container">
-                    <input type="hidden" id="projectId" name="projectId">
+                <!-- 交貨資訊 -->
+                <div class="form-section">
+                    <h3>交貨資訊</h3>
                     
                     <div class="form-group">
                         <label for="expectedDeliveryPeriod">預計交貨期 *</label>
                         <input type="text" id="expectedDeliveryPeriod" name="expectedDeliveryPeriod" required 
-                            placeholder="例：30個工作天、2個月等">
+                               placeholder="例：30個工作天、2個月等">
                     </div>
 
                     <div class="form-group">
@@ -92,7 +99,7 @@
                     <div class="form-group">
                         <label for="expectedContractPeriod">預計履約期 *</label>
                         <input type="text" id="expectedContractPeriod" name="expectedContractPeriod" required 
-                            placeholder="例：1年、18個月等">
+                               placeholder="例：1年、18個月等">
                     </div>
 
                     <div class="form-group">
@@ -108,20 +115,22 @@
                     <div class="form-group">
                         <label for="deliveryAddress">交貨地址</label>
                         <textarea id="deliveryAddress" name="deliveryAddress" rows="3" 
-                                placeholder="請輸入詳細交貨地址"></textarea>
+                                  placeholder="請輸入詳細交貨地址"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="specialRequirements">特殊需求</label>
                         <textarea id="specialRequirements" name="specialRequirements" rows="4" 
-                                placeholder="請輸入任何特殊需求或注意事項"></textarea>
+                                  placeholder="請輸入任何特殊需求或注意事項"></textarea>
                     </div>
+                </div>
 
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="location.href='index.html'">取消</button>
-                        <button type="submit" class="btn btn-primary">完成報備</button>
-                    </div>
-                </form>
+                <!-- 備註 -->
+                <div class="form-group">
+                    <label for="remarks">備註</label>
+                    <textarea id="remarks" name="remarks" rows="4" 
+                              placeholder="請輸入其他相關資訊"></textarea>
+                </div>
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="location.href='index.html'">取消</button>
@@ -139,5 +148,6 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="stock-report-handler.js"></script>
 </body>
 </html>
