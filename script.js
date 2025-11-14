@@ -31,7 +31,9 @@ const utils = {
 
     formatDateTime: (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
+        // 移除時區標記，直接當作本地時間處理
+        const cleanDateString = dateString.replace('Z', '').replace(/\+\d{2}:\d{2}$/, '');
+        const date = new Date(cleanDateString);
         return date.toLocaleString('zh-TW');
     },
 
