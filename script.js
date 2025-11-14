@@ -1078,7 +1078,12 @@ const dashboardHandler = {
         }
         
         if (item.remark) {
-            html += `<h4>備註</h4><p>${item.remark}</p>`;
+            html += `
+                <br>
+                <h4>備註</h4>
+                <br>
+                <p>${item.remark}</p>
+            `;
         }
         
         return html;
@@ -1138,7 +1143,12 @@ const dashboardHandler = {
         }
         
         if (item.remark) {
-            html += `<h4>備註</h4><p>${item.remark}</p>`;
+            html += `
+                <br>
+                <h4>備註</h4>
+                <br>
+                <p>${item.remark}</p>
+            `;
         }
         
         return html;
