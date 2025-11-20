@@ -22,7 +22,7 @@ const auth = {
         try {
             const token = auth.getToken();
             if (token) {
-                // 呼叫後端登出 API
+                // 呼叫後端登出 API - 🔴 確認這裡是 8080
                 await fetch('http://localhost:8080/auth/logout', {
                     method: 'POST',
                     headers: {
@@ -56,7 +56,7 @@ const auth = {
         }
 
         try {
-            // 驗證 token 是否有效
+            // 驗證 token 是否有效 - 🔴 確認這裡是 8080
             const response = await fetch('http://localhost:8080/auth/me', {
                 headers: {
                     'Authorization': `Bearer ${auth.getToken()}`
