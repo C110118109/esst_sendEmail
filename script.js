@@ -52,10 +52,16 @@ const api = {
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
+                    ...auth.getAuthHeaders(),
                     ...options.headers
                 },
                 ...options
             });
+
+            if (response.status === 401) {
+                auth.logout();
+                return;
+            }
 
             console.log('📥 Response status:', response.status);
             

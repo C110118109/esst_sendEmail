@@ -8,6 +8,14 @@
 </head>
 <body>
     <div class="container">
+        <!-- 使用者資訊列 -->
+        <div class="user-info-bar">
+            <div id="userInfo" class="user-info">
+                <span>載入中...</span>
+            </div>
+            <button onclick="auth.logout()" class="logout-btn">登出</button>
+        </div>
+
         <header>
             <h1>專案報備系統</h1>
             <p>請選擇您要進行的作業類型</p>
@@ -20,8 +28,8 @@
                     <h2>專案報備</h2>
                     <p>需要得標後填寫交貨資訊的專案</p>
                     <div class="card-steps">
-                        <span class="step">第一階段：基本資訊</span>
-                        <span class="step">第二階段：交貨資訊</span>
+                        <span class="step">第一階段:基本資訊</span>
+                        <span class="step">第二階段:交貨資訊</span>
                     </div>
                 </div>
 
@@ -44,12 +52,17 @@
                 </div>
             </div>
         </main>
-
-        <!-- <footer>
-            <p>&copy; 2025 專案報備系統</p>
-        </footer> -->
     </div>
 
+    <!-- 先載入認證模組 -->
+    <script src="auth.js"></script>
+    <!-- 再載入主要腳本 -->
     <script src="script.js"></script>
+    <script>
+        // 顯示使用者資訊
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.displayUserInfo();
+        });
+    </script>
 </body>
 </html>

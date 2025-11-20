@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 專案報備系統</title>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🔐 系統登入</h1>
+                <p>專案報備系統</p>
+            </div>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">使用者帳號</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required 
+                        autofocus
+                        placeholder="請輸入帳號"
+                        autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">密碼</label>
+                    <div class="password-toggle">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            placeholder="請輸入密碼"
+                            autocomplete="current-password">
+                        <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    登入
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 登入處理
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        // 密碼顯示切換
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // 檢查是否已登入
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            // 驗證 token 是否有效
+            fetch('http://localhost:8080/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Token 有效,直接跳轉
+                    window.location.href = 'index.html';
+                }
+            })
+            .catch(() => {
+                // Token 無效,清除並繼續顯示登入頁
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_info');
+            });
+        }
+
+        // 表單提交
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // 隱藏錯誤訊息
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+
+            // 禁用按鈕
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登入中...';
+
+            try {
+                const response = await fetch('http://localhost:8080/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Login response:', data);
+
+                if (data.code === 200 && data.body && data.body.token) {
+                    // 登入成功
+                    const userInfo = {
+                        id: data.body.id,
+                        username: data.body.username,
+                        role: data.body.role
+                    };
+
+                    // 儲存 token 和使用者資訊
+                    localStorage.setItem('auth_token', data.body.token);
+                    localStorage.setItem('user_info', JSON.stringify(userInfo));
+
+                    // 顯示成功訊息
+                    alert('✅ 登入成功!');
+
+                    // 跳轉到首頁
+                    window.location.href = 'index.html';
+                } else {
+                    // 登入失敗
+                    throw new Error(data.message || '登入失敗,請檢查帳號密碼');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // 顯示錯誤訊息
+                errorMessage.textContent = error.message || '登入失敗,請稍後再試';
+                errorMessage.classList.add('show');
+
+                // 恢復按鈕
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登入';
+
+                // 清空密碼
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+
+        // Enter 鍵提交
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
