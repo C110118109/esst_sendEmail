@@ -50,6 +50,16 @@
                         <span class="step">即時數據顯示</span>
                     </div>
                 </div>
+
+                <!-- 管理員專用卡片 -->
+                <div id="adminCard" class="card" onclick="location.href='user-management.html'" style="display: none;">
+                    <div class="card-icon">👥</div>
+                    <h2>帳號管理</h2>
+                    <p>管理系統使用者與權限</p>
+                    <div class="card-steps">
+                        <span class="step admin-badge">僅限管理員</span>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -59,9 +69,18 @@
     <!-- 再載入主要腳本 -->
     <script src="script.js"></script>
     <script>
-        // 顯示使用者資訊
+        // 顯示使用者資訊並判斷是否為管理員
         document.addEventListener('DOMContentLoaded', () => {
             auth.displayUserInfo();
+            
+            // 檢查是否為管理員
+            const userInfo = auth.getUserInfo();
+            if (userInfo && userInfo.role === 'admin') {
+                const adminCard = document.getElementById('adminCard');
+                if (adminCard) {
+                    adminCard.style.display = 'block';
+                }
+            }
         });
     </script>
 </body>

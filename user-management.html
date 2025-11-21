@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帳號管理 - 專案報備系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 使用者資訊列 -->
+        <div class="user-info-bar">
+            <div id="userInfo" class="user-info">
+                <span>載入中...</span>
+            </div>
+            <button onclick="auth.logout()" class="logout-btn">登出</button>
+        </div>
+
+        <header>
+            <div class="breadcrumb">
+                <a href="index.html">首頁</a> > <span>帳號管理</span>
+            </div>
+            <h1>帳號管理</h1>
+            <p>管理系統使用者帳號與權限</p>
+        </header>
+
+        <main>
+            <!-- 操作按鈕區 -->
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <button id="addUserBtn" class="btn btn-primary">➕ 新增使用者</button>
+                    <button id="refreshData" class="btn btn-secondary">🔄 重新整理</button>
+                </div>
+            </div>
+
+            <!-- 統計卡片 -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">-</div>
+                    <div class="stat-label">總使用者數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="adminCount">-</div>
+                    <div class="stat-label">管理員</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="userCount">-</div>
+                    <div class="stat-label">一般使用者</div>
+                </div>
+            </div>
+
+            <!-- 使用者列表 -->
+            <div class="data-section">
+                <h3>使用者列表</h3>
+                <div class="table-container">
+                    <table id="userTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>使用者帳號</th>
+                                <th>電子信箱</th>
+                                <th>角色</th>
+                                <th>建立時間</th>
+                                <th>最後更新</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="no-data">
+                                <td colspan="6">載入中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 新增/編輯使用者 Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">新增使用者</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" name="userId">
+                    
+                    <div class="form-group">
+                        <label for="username">使用者帳號 *</label>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="請輸入使用者帳號">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">電子信箱 *</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="請輸入電子信箱">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">密碼 <span id="passwordRequired">*</span></label>
+                        <input type="password" id="password" name="password" 
+                               placeholder="請輸入密碼(至少6個字元)">
+                        <small style="color: #7f8c8d;">編輯時若不修改密碼請留空</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">角色 *</label>
+                        <select id="role" name="role" required>
+                            <option value="user">一般使用者</option>
+                            <option value="admin">管理員</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">取消</button>
+                <button id="saveUserBtn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認刪除 Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>確認刪除</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">確定要刪除此使用者嗎?此操作無法復原。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">取消</button>
+                <button id="confirmDeleteBtn" class="btn btn-danger">確定刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script src="user-management.js"></script>
+    <script>
+        // 頁面載入時檢查管理員權限
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userInfo = auth.getUserInfo();
+            if (!userInfo || userInfo.role !== 'admin') {
+                alert('❌ 您沒有權限訪問此頁面');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            auth.displayUserInfo();
+            await userManagement.init();
+        });
+    </script>
+</body>
+</html>
