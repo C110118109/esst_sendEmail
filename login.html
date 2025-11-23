@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登入 - 專案報備系統</title>
     <link rel="stylesheet" href="style.css">
-    
 </head>
 <body>
     <div class="login-container">
@@ -17,7 +16,8 @@
 
             <div id="errorMessage" class="error-message"></div>
 
-            <form id="loginForm" class="login-form">
+            <!-- 第一步:輸入帳號密碼 -->
+            <form id="step1Form" class="login-form">
                 <div class="form-group">
                     <label for="username">使用者帳號</label>
                     <input 
@@ -44,20 +44,61 @@
                     </div>
                 </div>
 
-                <button type="submit" class="login-btn" id="loginBtn">
-                    登入
+                <button type="submit" class="login-btn" id="step1Btn">
+                    下一步 - 發送驗證碼
                 </button>
+            </form>
+
+            <!-- 第二步:輸入驗證碼 (初始隱藏) -->
+            <form id="step2Form" class="login-form" style="display: none;">
+                <div class="verification-info">
+                    <p>✉️ 驗證碼已發送至您的信箱</p>
+                    <p id="maskedEmail" class="masked-email"></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="verificationCode">驗證碼</label>
+                    <input 
+                        type="text" 
+                        id="verificationCode" 
+                        name="verificationCode" 
+                        required
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        placeholder="請輸入 6 位數驗證碼"
+                        autocomplete="off">
+                    <small style="color: #7f8c8d;">驗證碼有效期為 5 分鐘</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="backBtn" style="flex: 1;">
+                        返回
+                    </button>
+                    <button type="submit" class="login-btn" id="step2Btn" style="flex: 2;">
+                        驗證並登入
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
     <script>
         // 登入處理
-        const loginForm = document.getElementById('loginForm');
+        const step1Form = document.getElementById('step1Form');
+        const step2Form = document.getElementById('step2Form');
         const errorMessage = document.getElementById('errorMessage');
-        const loginBtn = document.getElementById('loginBtn');
+        const step1Btn = document.getElementById('step1Btn');
+        const step2Btn = document.getElementById('step2Btn');
+        const backBtn = document.getElementById('backBtn');
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
+        const maskedEmailEl = document.getElementById('maskedEmail');
+
+        // 儲存登入資訊
+        let loginCredentials = {
+            username: '',
+            password: ''
+        };
 
         // 密碼顯示切換
         togglePassword.addEventListener('click', () => {
@@ -88,23 +129,27 @@
             });
         }
 
-        // 表單提交
-        loginForm.addEventListener('submit', async (e) => {
+        // 第一步:提交帳號密碼,請求驗證碼
+        step1Form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+
+            // 儲存登入資訊
+            loginCredentials.username = username;
+            loginCredentials.password = password;
 
             // 隱藏錯誤訊息
             errorMessage.classList.remove('show');
             errorMessage.textContent = '';
 
             // 禁用按鈕
-            loginBtn.disabled = true;
-            loginBtn.textContent = '登入中...';
+            step1Btn.disabled = true;
+            step1Btn.textContent = '驗證中...';
 
             try {
-                const response = await fetch('http://localhost:8080/auth/login', {
+                const response = await fetch('http://localhost:8080/auth/request-code', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -116,7 +161,67 @@
                 });
 
                 const data = await response.json();
-                console.log('Login response:', data);
+                console.log('Request code response:', data);
+
+                if (data.code === 200 && data.body) {
+                    // 請求成功,顯示第二步
+                    maskedEmailEl.textContent = data.body.email || '您的信箱';
+                    step1Form.style.display = 'none';
+                    step2Form.style.display = 'block';
+                    document.getElementById('verificationCode').focus();
+                } else {
+                    // 請求失敗
+                    throw new Error(data.message || '帳號或密碼錯誤');
+                }
+            } catch (error) {
+                console.error('Request code error:', error);
+                
+                // 顯示錯誤訊息
+                errorMessage.textContent = error.message || '請求失敗,請稍後再試';
+                errorMessage.classList.add('show');
+
+                // 恢復按鈕
+                step1Btn.disabled = false;
+                step1Btn.textContent = '下一步 - 發送驗證碼';
+            }
+        });
+
+        // 第二步:驗證驗證碼並登入
+        step2Form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const verificationCode = document.getElementById('verificationCode').value;
+
+            // 驗證驗證碼格式
+            if (!/^\d{6}$/.test(verificationCode)) {
+                errorMessage.textContent = '請輸入 6 位數字驗證碼';
+                errorMessage.classList.add('show');
+                return;
+            }
+
+            // 隱藏錯誤訊息
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+
+            // 禁用按鈕
+            step2Btn.disabled = true;
+            step2Btn.textContent = '驗證中...';
+
+            try {
+                const response = await fetch('http://localhost:8080/auth/verify-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: loginCredentials.username,
+                        password: loginCredentials.password,
+                        code: verificationCode
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Verify login response:', data);
 
                 if (data.code === 200 && data.body && data.body.token) {
                     // 登入成功
@@ -137,31 +242,40 @@
                     window.location.href = 'index.html';
                 } else {
                     // 登入失敗
-                    throw new Error(data.message || '登入失敗,請檢查帳號密碼');
+                    throw new Error(data.message || '驗證碼錯誤或已過期');
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Verify login error:', error);
                 
                 // 顯示錯誤訊息
-                errorMessage.textContent = error.message || '登入失敗,請稍後再試';
+                errorMessage.textContent = error.message || '驗證失敗,請稍後再試';
                 errorMessage.classList.add('show');
 
                 // 恢復按鈕
-                loginBtn.disabled = false;
-                loginBtn.textContent = '登入';
+                step2Btn.disabled = false;
+                step2Btn.textContent = '驗證並登入';
 
-                // 清空密碼
-                passwordInput.value = '';
-                passwordInput.focus();
+                // 清空驗證碼
+                document.getElementById('verificationCode').value = '';
+                document.getElementById('verificationCode').focus();
             }
         });
 
-        // Enter 鍵提交
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loginForm.dispatchEvent(new Event('submit'));
-            }
+        // 返回按鈕
+        backBtn.addEventListener('click', () => {
+            step2Form.style.display = 'none';
+            step1Form.style.display = 'block';
+            document.getElementById('verificationCode').value = '';
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+        });
+
+        // 驗證碼輸入框只允許數字
+        document.getElementById('verificationCode').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
         });
     </script>
+
+
 </body>
 </html>

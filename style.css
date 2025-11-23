@@ -693,6 +693,60 @@ main {
     transform: translateY(-2px);
 }
 
+.verification-info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+            border-left: 4px solid #2196F3;
+        }
+
+        .verification-info p {
+            margin: 8px 0;
+            color: #1976D2;
+            font-size: 15px;
+        }
+
+        .masked-email {
+            font-weight: 600;
+            font-size: 16px !important;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            font-size: 14px;    
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        #verificationCode {
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-weight: 600;
+        }
+
 /* ========== 響應式調整 ========== */
 @media (max-width: 600px) {
     .user-info-bar {
