@@ -199,18 +199,20 @@ main {
     border: 1px solid #e9ecef;
 }
 
-/* 按鈕樣式 */
+/* 按鈕樣式 - 統一所有按鈕尺寸 */
 .btn {
-    padding: 12px 24px;
+    padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
     display: inline-block;
     text-align: center;
+    min-width: 80px;
+    box-sizing: border-box;
 }
 
 .btn-primary {
@@ -344,7 +346,7 @@ main {
 /* 表格樣式 - 修改此處以支援捲軸 */
 .table-container {
     overflow-x: auto;
-    max-height: 400px; /* 約可顯示5-6筆資料的高度 */
+    max-height: 400px;
     overflow-y: auto;
     position: relative;
     border: 1px solid #ecf0f1;
@@ -402,6 +404,16 @@ main {
     text-align: center;
     color: #7f8c8d;
     font-style: italic;
+}
+
+/* 表格內按鈕統一尺寸 */
+.data-table td .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    margin: 3px 2px;
+    display: inline-block;
+    min-width: 80px;
+    white-space: nowrap;
 }
 
 /* 狀態標籤 */
@@ -527,6 +539,13 @@ main {
     justify-content: flex-end;
     gap: 10px;
     background: #f8f9fa;
+}
+
+/* Modal footer 按鈕統一尺寸 */
+.modal-footer .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-width: 80px;
 }
 
 /* Loading 樣式 */
@@ -694,58 +713,38 @@ main {
 }
 
 .verification-info {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            text-align: center;
-            border-left: 4px solid #2196F3;
-        }
+    background: #e3f2fd;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    text-align: center;
+    border-left: 4px solid #2196F3;
+}
 
-        .verification-info p {
-            margin: 8px 0;
-            color: #1976D2;
-            font-size: 15px;
-        }
+.verification-info p {
+    margin: 8px 0;
+    color: #1976D2;
+    font-size: 15px;
+}
 
-        .masked-email {
-            font-weight: 600;
-            font-size: 16px !important;
-        }
+.masked-email {
+    font-weight: 600;
+    font-size: 16px !important;
+}
 
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
+/* 表單操作區按鈕統一尺寸 */
+.form-actions .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-width: 80px;
+}
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-            font-size: 14px;    
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
-            transform: translateY(-2px);
-        }
-
-        #verificationCode {
-            text-align: center;
-            font-size: 18px;
-            letter-spacing: 4px;
-            font-weight: 600;
-        }
+#verificationCode {
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 4px;
+    font-weight: 600;
+}
 
 /* ========== 響應式調整 ========== */
 @media (max-width: 600px) {
@@ -813,6 +812,10 @@ footer {
     
     .form-actions {
         flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
     }
     
     .filter-group {
